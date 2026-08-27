@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { ChevronDown } from 'lucide-react'
+import { toast } from 'sonner'
+import { ChevronDown, Plus } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
@@ -18,6 +19,8 @@ export function SearchCombobox({
   placeholder,
   emptyLabel = 'Nenhum resultado.',
   className,
+  onCreate,
+  createLabel,
 }: {
   selectedLabel: string | null
   onSelect: (option: ComboboxOption) => void
@@ -25,11 +28,14 @@ export function SearchCombobox({
   placeholder: string
   emptyLabel?: string
   className?: string
+  onCreate?: (query: string) => Promise<ComboboxOption>
+  createLabel?: (query: string) => string
 }) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const debouncedQuery = useDebouncedValue(query, 250)
   const [options, setOptions] = useState<ComboboxOption[]>([])
+  const [creating, setCreating] = useState(false)
 
   useEffect(() => {
     if (!open) return
@@ -41,6 +47,21 @@ export function SearchCombobox({
       cancelled = true
     }
   }, [debouncedQuery, open, search])
+
+  const handleCreate = async () => {
+    if (!onCreate || !query.trim() || creating) return
+    setCreating(true)
+    try {
+      const option = await onCreate(query.trim())
+      onSelect(option)
+      setOpen(false)
+      setQuery('')
+    } catch (error) {
+      toast.error('Não foi possível criar', { description: error instanceof Error ? error.message : undefined })
+    } finally {
+      setCreating(false)
+    }
+  }
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -78,6 +99,14 @@ export function SearchCombobox({
                 </CommandItem>
               ))}
             </CommandGroup>
+            {onCreate && query.trim() ? (
+              <CommandGroup>
+                <CommandItem value={`__create__${query.trim()}`} disabled={creating} onSelect={handleCreate}>
+                  <Plus className="size-3.5" />
+                  {creating ? 'Criando…' : (createLabel ?? ((q: string) => `Criar "${q}"`))(query.trim())}
+                </CommandItem>
+              </CommandGroup>
+            ) : null}
           </CommandList>
         </Command>
       </PopoverContent>

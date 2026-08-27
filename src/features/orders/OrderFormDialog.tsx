@@ -140,6 +140,40 @@ export function OrderFormDialog({
     return (data ?? []).map((p) => ({ id: p.id, label: p.description, sublabel: `${p.sku} · ${formatCurrency(p.sale_price)}` }))
   }
 
+  const createProductFromDescription = async (item: LineItem, description: string): Promise<ComboboxOption> => {
+    if (!activeWorkspace) throw new Error('Workspace não encontrado')
+
+    let base: { sale_price: number; cost_price: number; unit: string; category: string | null; ncm: string | null } | null = null
+    if (item.product_id) {
+      const { data } = await supabase
+        .from('products')
+        .select('sale_price, cost_price, unit, category, ncm')
+        .eq('id', item.product_id)
+        .single()
+      base = data
+    }
+
+    const sku = `AUTO-${Date.now().toString(36).toUpperCase()}`
+    const { data, error } = await supabase
+      .from('products')
+      .insert({
+        workspace_id: activeWorkspace.id,
+        sku,
+        description,
+        unit: base?.unit ?? 'UN',
+        sale_price: base?.sale_price ?? toNumber(item.unit_price),
+        cost_price: base?.cost_price ?? 0,
+        category: base?.category ?? null,
+        ncm: base?.ncm ?? null,
+        active: true,
+      })
+      .select('id, sku, description, sale_price')
+      .single()
+    if (error) throw new Error(error.message)
+
+    return { id: data.id, label: data.description, sublabel: `${data.sku} · ${formatCurrency(data.sale_price)}` }
+  }
+
   const searchTeamMembers = async (query: string): Promise<ComboboxOption[]> => {
     if (!activeWorkspace) return []
     if (!isAdmin) {
@@ -289,6 +323,8 @@ export function OrderFormDialog({
                       selectedLabel={item.description || null}
                       placeholder="Buscar produto…"
                       search={searchProducts}
+                      onCreate={(query) => createProductFromDescription(item, query)}
+                      createLabel={(query) => `Criar produto "${query}"`}
                       onSelect={(option) => {
                         const [, priceLabel] = (option.sublabel ?? '').split('·')
                         updateItem(item.key, {
