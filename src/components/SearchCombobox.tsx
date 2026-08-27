@@ -48,6 +48,11 @@ export function SearchCombobox({
     }
   }, [debouncedQuery, open, search])
 
+  useEffect(() => {
+    if (open && onCreate) setQuery(selectedLabel ?? '')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
+
   const handleCreate = async () => {
     if (!onCreate || !query.trim() || creating) return
     setCreating(true)
