@@ -81,7 +81,7 @@ export function OrderPrintPage() {
         <div className="mb-8 flex items-start justify-between border-b border-neutral-200 pb-6">
           <div>
             {brand ? (
-              <img src={brand.logo} alt={brand.label} className="mb-1 h-12 w-auto object-contain" />
+              <img src={brand.logo} alt={brand.label} className="mb-1 h-24 w-auto object-contain" />
             ) : (
               <h1 className="text-xl font-semibold">{activeWorkspace?.name}</h1>
             )}
