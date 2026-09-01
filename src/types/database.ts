@@ -2,6 +2,7 @@ export type LeadStage = 'novo_lead' | 'contato_feito' | 'qualificado' | 'cliente
 export type ActivityType = 'call' | 'email' | 'whatsapp' | 'meeting' | 'task'
 export type ActivityStatus = 'pending' | 'completed'
 export type DiscountType = 'percent' | 'value'
+export type OrderBrand = 'moldplast' | 'marcoplast'
 export type UserRole = 'admin' | 'member'
 export type AutomationTrigger =
   | 'order_stage_changed'
@@ -167,6 +168,7 @@ export interface Database {
           stage_history: StageHistoryEntry[]
           created_by: string | null
           assigned_to: string | null
+          brand: OrderBrand | null
           created_at: string
           updated_at: string
         }

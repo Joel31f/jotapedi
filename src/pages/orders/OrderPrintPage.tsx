@@ -5,6 +5,7 @@ import { Printer } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { formatCurrency, formatDate, formatDateTime } from '@/lib/format'
 import { useWorkspace } from '@/providers/WorkspaceProvider'
+import { ORDER_BRAND_MAP } from '@/config/brands'
 
 function usePrintableOrder(id: string | undefined) {
   return useQuery({
@@ -56,6 +57,7 @@ export function OrderPrintPage() {
     return <div className="p-8 text-sm text-neutral-500">Carregando…</div>
   }
 
+  const brand = order.brand ? ORDER_BRAND_MAP[order.brand as keyof typeof ORDER_BRAND_MAP] : null
   const client = order.clients
   const address = client
     ? [client.address_street, client.address_number, client.address_neighborhood, client.address_city, client.address_state]
@@ -78,7 +80,11 @@ export function OrderPrintPage() {
 
         <div className="mb-8 flex items-start justify-between border-b border-neutral-200 pb-6">
           <div>
-            <h1 className="text-xl font-semibold">{activeWorkspace?.name}</h1>
+            {brand ? (
+              <img src={brand.logo} alt={brand.label} className="mb-1 h-12 w-auto object-contain" />
+            ) : (
+              <h1 className="text-xl font-semibold">{activeWorkspace?.name}</h1>
+            )}
             <p className="text-sm text-neutral-500">Pedido #{order.id.slice(0, 8).toUpperCase()}</p>
           </div>
           <div className="text-right text-sm text-neutral-500">

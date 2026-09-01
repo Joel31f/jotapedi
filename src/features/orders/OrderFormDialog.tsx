@@ -13,7 +13,8 @@ import { formatCurrency, formatDateTime } from '@/lib/format'
 import { supabase } from '@/lib/supabase'
 import { useWorkspace } from '@/providers/WorkspaceProvider'
 import { useCreateOrder, useUpdateOrder, type OrderWithItems, type OrderItemPayload } from '@/features/orders/api'
-import type { DiscountType } from '@/types/database'
+import { ORDER_BRANDS } from '@/config/brands'
+import type { DiscountType, OrderBrand } from '@/types/database'
 
 interface LineItem {
   key: string
@@ -62,6 +63,7 @@ export function OrderFormDialog({
   const [clientId, setClientId] = useState<string | null>(null)
   const [clientLabel, setClientLabel] = useState<string | null>(null)
   const [stageId, setStageId] = useState<string>('')
+  const [brand, setBrand] = useState<OrderBrand | null>(null)
   const [assignedTo, setAssignedTo] = useState<string | null>(null)
   const [assignedToLabel, setAssignedToLabel] = useState<string | null>(null)
   const [items, setItems] = useState<LineItem[]>([emptyItem()])
@@ -79,6 +81,7 @@ export function OrderFormDialog({
       setClientId(order.client?.id ?? null)
       setClientLabel(order.client?.name ?? null)
       setStageId(order.stage_id)
+      setBrand(order.brand)
       setAssignedTo(order.assigned_to)
       setAssignedToLabel(null)
       if (order.assigned_to) {
@@ -109,6 +112,7 @@ export function OrderFormDialog({
       setClientId(defaultClient?.id ?? null)
       setClientLabel(defaultClient?.label ?? null)
       setStageId(stages[0]?.id ?? '')
+      setBrand(null)
       setAssignedTo(activeMembership?.id ?? null)
       setAssignedToLabel(activeMembership?.name ?? null)
       setDiscountType('value')
@@ -214,6 +218,7 @@ export function OrderFormDialog({
     const orderPayload = {
       client_id: clientId,
       stage_id: stageId,
+      brand,
       assigned_to: assignedTo,
       subtotal,
       discount_type: discountType,
@@ -286,6 +291,26 @@ export function OrderFormDialog({
                   {stages.map((stage) => (
                     <SelectItem key={stage.id} value={stage.id}>
                       {stage.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex min-w-[180px] flex-1 flex-col gap-1.5">
+              <Label>Marca</Label>
+              <Select
+                value={brand ?? '__none__'}
+                onValueChange={(value) => setBrand(value === '__none__' ? null : (value as OrderBrand))}
+                items={[{ value: '__none__', label: 'Sem marca' }, ...ORDER_BRANDS.map((b) => ({ value: b.id, label: b.label }))]}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Selecionar marca" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Sem marca</SelectItem>
+                  {ORDER_BRANDS.map((b) => (
+                    <SelectItem key={b.id} value={b.id}>
+                      {b.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
