@@ -96,7 +96,11 @@ export function OrderPrintPage() {
         <div className="mb-6">
           <p className="mb-1 text-xs font-medium uppercase text-neutral-400">Cliente</p>
           <p className="text-base font-medium">{client?.name}</p>
-          {client?.company ? <p className="text-sm text-neutral-600">{client.company}</p> : null}
+          {brand ? (
+            <p className="text-sm text-neutral-600">{brand.shortName}</p>
+          ) : client?.company ? (
+            <p className="text-sm text-neutral-600">{client.company}</p>
+          ) : null}
           {client?.document ? <p className="text-sm text-neutral-600">Doc: {client.document}</p> : null}
           {client?.state_registration ? <p className="text-sm text-neutral-600">IE: {client.state_registration}</p> : null}
           <p className="text-sm text-neutral-600">

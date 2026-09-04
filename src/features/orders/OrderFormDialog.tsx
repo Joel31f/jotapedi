@@ -214,6 +214,10 @@ export function OrderFormDialog({
       toast.error('Selecione um estágio')
       return
     }
+    if (!brand) {
+      toast.error('Selecione a marca do pedido')
+      return
+    }
 
     const orderPayload = {
       client_id: clientId,
@@ -299,15 +303,14 @@ export function OrderFormDialog({
             <div className="flex min-w-[180px] flex-1 flex-col gap-1.5">
               <Label>Marca</Label>
               <Select
-                value={brand ?? '__none__'}
-                onValueChange={(value) => setBrand(value === '__none__' ? null : (value as OrderBrand))}
-                items={[{ value: '__none__', label: 'Sem marca' }, ...ORDER_BRANDS.map((b) => ({ value: b.id, label: b.label }))]}
+                value={brand ?? ''}
+                onValueChange={(value) => setBrand((value as OrderBrand) || null)}
+                items={ORDER_BRANDS.map((b) => ({ value: b.id, label: b.label }))}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Selecionar marca" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__none__">Sem marca</SelectItem>
                   {ORDER_BRANDS.map((b) => (
                     <SelectItem key={b.id} value={b.id}>
                       {b.label}
