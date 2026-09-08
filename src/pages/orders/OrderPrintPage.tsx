@@ -23,7 +23,7 @@ function usePrintableOrder(id: string | undefined) {
 
       const { data: items, error: itemsError } = await supabase
         .from('order_items')
-        .select('*')
+        .select('*, products(sku)')
         .eq('order_id', id!)
         .order('position', { ascending: true })
       if (itemsError) throw itemsError
@@ -112,6 +112,7 @@ export function OrderPrintPage() {
         <table className="mb-6 w-full text-sm">
           <thead>
             <tr className="border-b border-neutral-300 text-left text-xs uppercase text-neutral-400">
+              <th className="py-2">Código</th>
               <th className="py-2">Descrição</th>
               <th className="py-2 text-right">Qtd.</th>
               <th className="py-2 text-right">Preço unit.</th>
@@ -121,6 +122,7 @@ export function OrderPrintPage() {
           <tbody>
             {order.items.map((item: any) => (
               <tr key={item.id} className="border-b border-neutral-100">
+                <td className="py-2 text-neutral-500">{item.products?.sku ?? '—'}</td>
                 <td className="py-2">{item.description}</td>
                 <td className="py-2 text-right">{item.quantity}</td>
                 <td className="py-2 text-right">{formatCurrency(item.unit_price)}</td>
