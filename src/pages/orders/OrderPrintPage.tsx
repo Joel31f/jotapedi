@@ -67,7 +67,7 @@ export function OrderPrintPage() {
 
   return (
     <div className="min-h-svh bg-white text-neutral-900">
-      <div className="mx-auto max-w-2xl p-8">
+      <div className="mx-auto max-w-3xl p-8">
         <div className="mb-6 flex items-center justify-between print:hidden">
           <button
             onClick={() => window.print()}
@@ -109,24 +109,24 @@ export function OrderPrintPage() {
           {address ? <p className="text-sm text-neutral-600">{address}</p> : null}
         </div>
 
-        <table className="mb-6 w-full text-sm">
+        <table className="mb-6 w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-neutral-300 text-left text-xs uppercase text-neutral-400">
-              <th className="py-2">Código</th>
-              <th className="py-2">Descrição</th>
-              <th className="py-2 text-right">Qtd.</th>
-              <th className="py-2 text-right">Preço unit.</th>
+              <th className="py-2 pr-4">Código</th>
+              <th className="py-2 pr-4">Descrição</th>
+              <th className="py-2 pr-4 text-right">Qtd.</th>
+              <th className="py-2 pr-4 text-right">Preço unit.</th>
               <th className="py-2 text-right">Total</th>
             </tr>
           </thead>
           <tbody>
             {order.items.map((item: any) => (
               <tr key={item.id} className="border-b border-neutral-100">
-                <td className="py-2 text-neutral-500">{item.products?.sku ?? '—'}</td>
-                <td className="py-2">{item.description}</td>
-                <td className="py-2 text-right">{item.quantity}</td>
-                <td className="py-2 text-right">{formatCurrency(item.unit_price)}</td>
-                <td className="py-2 text-right">{formatCurrency(item.total)}</td>
+                <td className="py-2 pr-4 whitespace-nowrap text-neutral-500">{item.products?.sku ?? '—'}</td>
+                <td className="py-2 pr-4">{item.description}</td>
+                <td className="py-2 pr-4 text-right whitespace-nowrap">{item.quantity}</td>
+                <td className="py-2 pr-4 text-right whitespace-nowrap">{formatCurrency(item.unit_price)}</td>
+                <td className="py-2 text-right whitespace-nowrap">{formatCurrency(item.total)}</td>
               </tr>
             ))}
           </tbody>
