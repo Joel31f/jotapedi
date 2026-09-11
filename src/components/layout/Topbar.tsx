@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -71,7 +72,9 @@ export function Topbar({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
           ) : null}
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-80">
-          <DropdownMenuLabel>Notificações</DropdownMenuLabel>
+          <DropdownMenuGroup>
+            <DropdownMenuLabel>Notificações</DropdownMenuLabel>
+          </DropdownMenuGroup>
           <DropdownMenuSeparator />
           {notifications.length === 0 ? (
             <p className="px-2 py-4 text-center text-sm text-muted-foreground">Nenhuma notificação por aqui.</p>
@@ -105,7 +108,9 @@ export function Topbar({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
           <ChevronDown className="size-3.5 text-muted-foreground" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
-          <DropdownMenuLabel className="truncate">{user?.email}</DropdownMenuLabel>
+          <DropdownMenuGroup>
+            <DropdownMenuLabel className="truncate">{user?.email}</DropdownMenuLabel>
+          </DropdownMenuGroup>
           {memberships.length > 1 ? (
             <>
               <DropdownMenuSeparator />
