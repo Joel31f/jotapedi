@@ -2,7 +2,6 @@ export type LeadStage = 'novo_lead' | 'contato_feito' | 'qualificado' | 'cliente
 export type ActivityType = 'call' | 'email' | 'whatsapp' | 'meeting' | 'task'
 export type ActivityStatus = 'pending' | 'completed'
 export type DiscountType = 'percent' | 'value'
-export type OrderBrand = 'moldplast' | 'marcoplast'
 export type UserRole = 'admin' | 'member'
 export type AutomationTrigger =
   | 'order_stage_changed'
@@ -168,7 +167,7 @@ export interface Database {
           stage_history: StageHistoryEntry[]
           created_by: string | null
           assigned_to: string | null
-          brand: OrderBrand | null
+          brand_id: string | null
           created_at: string
           updated_at: string
         }
@@ -178,6 +177,18 @@ export interface Database {
           stage_id: string
         }
         Update: Partial<Database['public']['Tables']['orders']['Row']>
+        Relationships: []
+      }
+      brands: {
+        Row: {
+          id: string
+          workspace_id: string
+          name: string
+          logo_url: string | null
+          created_at: string
+        }
+        Insert: Partial<Database['public']['Tables']['brands']['Row']> & { workspace_id: string; name: string }
+        Update: Partial<Database['public']['Tables']['brands']['Row']>
         Relationships: []
       }
       order_items: {
