@@ -12,7 +12,7 @@ begin
   where con.conrelid = 'public.products'::regclass
     and con.contype = 'u'
     and (
-      select array_agg(attname order by attname)
+      select array_agg(attname::text order by attname::text)
       from pg_attribute
       where attrelid = con.conrelid and attnum = any(con.conkey)
     ) = array['sku', 'workspace_id'];
