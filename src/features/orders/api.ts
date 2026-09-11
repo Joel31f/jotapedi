@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useWorkspace } from '@/providers/WorkspaceProvider'
-import type { Database, OrderBrand } from '@/types/database'
+import type { Database } from '@/types/database'
 
 export type Order = Database['public']['Tables']['orders']['Row']
 export type OrderItem = Database['public']['Tables']['order_items']['Row']
@@ -131,7 +131,7 @@ export interface OrderPayload {
   notes: string | null
   created_by?: string | null
   assigned_to?: string | null
-  brand?: OrderBrand | null
+  brand_id?: string | null
 }
 
 export interface OrderItemPayload {

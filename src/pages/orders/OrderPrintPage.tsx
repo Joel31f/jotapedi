@@ -5,7 +5,6 @@ import { Printer } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { formatCurrency, formatDate, formatDateTime } from '@/lib/format'
 import { useWorkspace } from '@/providers/WorkspaceProvider'
-import { ORDER_BRAND_MAP } from '@/config/brands'
 
 function usePrintableOrder(id: string | undefined) {
   return useQuery({
@@ -15,7 +14,7 @@ function usePrintableOrder(id: string | undefined) {
       const { data: order, error } = await supabase
         .from('orders')
         .select(
-          '*, clients(name, company, document, state_registration, emails, phones, whatsapp, address_street, address_number, address_neighborhood, address_city, address_state), pipeline_stages(name)',
+          '*, clients(name, company, document, state_registration, emails, phones, whatsapp, address_street, address_number, address_neighborhood, address_city, address_state), pipeline_stages(name), brands(name, logo_url)',
         )
         .eq('id', id!)
         .single()
@@ -57,7 +56,7 @@ export function OrderPrintPage() {
     return <div className="p-8 text-sm text-neutral-500">Carregando…</div>
   }
 
-  const brand = order.brand ? ORDER_BRAND_MAP[order.brand as keyof typeof ORDER_BRAND_MAP] : null
+  const brand = order.brands
   const client = order.clients
   const address = client
     ? [client.address_street, client.address_number, client.address_neighborhood, client.address_city, client.address_state]
@@ -80,8 +79,10 @@ export function OrderPrintPage() {
 
         <div className="mb-8 flex items-start justify-between border-b border-neutral-200 pb-6">
           <div>
-            {brand ? (
-              <img src={brand.logo} alt={brand.label} className="mb-1 h-24 w-auto object-contain" />
+            {brand?.logo_url ? (
+              <img src={brand.logo_url} alt={brand.name} className="mb-1 h-24 w-auto object-contain" />
+            ) : brand ? (
+              <h1 className="text-xl font-semibold">{brand.name}</h1>
             ) : (
               <h1 className="text-xl font-semibold">{activeWorkspace?.name}</h1>
             )}
@@ -97,7 +98,7 @@ export function OrderPrintPage() {
           <p className="mb-1 text-xs font-medium uppercase text-neutral-400">Cliente</p>
           <p className="text-base font-medium">{client?.name}</p>
           {brand ? (
-            <p className="text-sm text-neutral-600">{brand.shortName}</p>
+            <p className="text-sm text-neutral-600">{brand.name}</p>
           ) : client?.company ? (
             <p className="text-sm text-neutral-600">{client.company}</p>
           ) : null}

@@ -13,8 +13,8 @@ import { formatCurrency, formatDateTime } from '@/lib/format'
 import { supabase } from '@/lib/supabase'
 import { useWorkspace } from '@/providers/WorkspaceProvider'
 import { useCreateOrder, useUpdateOrder, type OrderWithItems, type OrderItemPayload } from '@/features/orders/api'
-import { ORDER_BRANDS } from '@/config/brands'
-import type { DiscountType, OrderBrand } from '@/types/database'
+import { useBrandsQuery } from '@/features/brands/api'
+import type { DiscountType } from '@/types/database'
 
 interface LineItem {
   key: string
@@ -63,7 +63,7 @@ export function OrderFormDialog({
   const [clientId, setClientId] = useState<string | null>(null)
   const [clientLabel, setClientLabel] = useState<string | null>(null)
   const [stageId, setStageId] = useState<string>('')
-  const [brand, setBrand] = useState<OrderBrand | null>(null)
+  const [brandId, setBrandId] = useState<string | null>(null)
   const [assignedTo, setAssignedTo] = useState<string | null>(null)
   const [assignedToLabel, setAssignedToLabel] = useState<string | null>(null)
   const [items, setItems] = useState<LineItem[]>([emptyItem()])
@@ -73,6 +73,7 @@ export function OrderFormDialog({
 
   const createOrder = useCreateOrder()
   const updateOrder = useUpdateOrder()
+  const { data: brands = [] } = useBrandsQuery()
   const saving = createOrder.isPending || updateOrder.isPending
 
   useEffect(() => {
@@ -81,7 +82,7 @@ export function OrderFormDialog({
       setClientId(order.client?.id ?? null)
       setClientLabel(order.client?.name ?? null)
       setStageId(order.stage_id)
-      setBrand(order.brand)
+      setBrandId(order.brand_id)
       setAssignedTo(order.assigned_to)
       setAssignedToLabel(null)
       if (order.assigned_to) {
@@ -112,7 +113,7 @@ export function OrderFormDialog({
       setClientId(defaultClient?.id ?? null)
       setClientLabel(defaultClient?.label ?? null)
       setStageId(stages[0]?.id ?? '')
-      setBrand(null)
+      setBrandId(null)
       setAssignedTo(activeMembership?.id ?? null)
       setAssignedToLabel(activeMembership?.name ?? null)
       setDiscountType('value')
@@ -214,15 +215,11 @@ export function OrderFormDialog({
       toast.error('Selecione um estágio')
       return
     }
-    if (!brand) {
-      toast.error('Selecione a marca do pedido')
-      return
-    }
 
     const orderPayload = {
       client_id: clientId,
       stage_id: stageId,
-      brand,
+      brand_id: brandId,
       assigned_to: assignedTo,
       subtotal,
       discount_type: discountType,
@@ -303,17 +300,18 @@ export function OrderFormDialog({
             <div className="flex min-w-[180px] flex-1 flex-col gap-1.5">
               <Label>Marca</Label>
               <Select
-                value={brand ?? ''}
-                onValueChange={(value) => setBrand((value as OrderBrand) || null)}
-                items={ORDER_BRANDS.map((b) => ({ value: b.id, label: b.label }))}
+                value={brandId ?? '__none__'}
+                onValueChange={(value) => setBrandId(value === '__none__' ? null : value)}
+                items={[{ value: '__none__', label: 'Sem marca' }, ...brands.map((b) => ({ value: b.id, label: b.name }))]}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Selecionar marca" />
                 </SelectTrigger>
                 <SelectContent>
-                  {ORDER_BRANDS.map((b) => (
+                  <SelectItem value="__none__">Sem marca</SelectItem>
+                  {brands.map((b) => (
                     <SelectItem key={b.id} value={b.id}>
-                      {b.label}
+                      {b.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
