@@ -117,19 +117,26 @@ export function OrderPrintPage() {
               <th className="py-2 pr-4">Descrição</th>
               <th className="py-2 pr-4 text-right">Qtd.</th>
               <th className="py-2 pr-4 text-right">Preço unit.</th>
+              <th className="py-2 pr-4 text-right">Desconto</th>
               <th className="py-2 text-right">Total</th>
             </tr>
           </thead>
           <tbody>
-            {order.items.map((item: any) => (
-              <tr key={item.id} className="border-b border-neutral-100">
-                <td className="py-2 pr-4 whitespace-nowrap text-neutral-500">{item.products?.sku ?? '—'}</td>
-                <td className="py-2 pr-4">{item.description}</td>
-                <td className="py-2 pr-4 text-right whitespace-nowrap">{item.quantity}</td>
-                <td className="py-2 pr-4 text-right whitespace-nowrap">{formatCurrency(item.unit_price)}</td>
-                <td className="py-2 text-right whitespace-nowrap">{formatCurrency(item.total)}</td>
-              </tr>
-            ))}
+            {order.items.map((item: any) => {
+              const itemDiscount = item.quantity * item.unit_price - item.total
+              return (
+                <tr key={item.id} className="border-b border-neutral-100">
+                  <td className="py-2 pr-4 whitespace-nowrap text-neutral-500">{item.products?.sku ?? '—'}</td>
+                  <td className="py-2 pr-4">{item.description}</td>
+                  <td className="py-2 pr-4 text-right whitespace-nowrap">{item.quantity}</td>
+                  <td className="py-2 pr-4 text-right whitespace-nowrap">{formatCurrency(item.unit_price)}</td>
+                  <td className="py-2 pr-4 text-right whitespace-nowrap">
+                    {itemDiscount > 0 ? `-${formatCurrency(itemDiscount)}` : '—'}
+                  </td>
+                  <td className="py-2 text-right whitespace-nowrap">{formatCurrency(item.total)}</td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
 
