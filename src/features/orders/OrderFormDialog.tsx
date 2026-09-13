@@ -43,8 +43,10 @@ function toNumber(value: string) {
 }
 
 function itemTotal(item: LineItem) {
-  const gross = toNumber(item.quantity) * toNumber(item.unit_price)
-  const discount = item.discount_type === 'percent' ? (gross * toNumber(item.discount_value)) / 100 : toNumber(item.discount_value)
+  const quantity = toNumber(item.quantity)
+  const gross = quantity * toNumber(item.unit_price)
+  const discount =
+    item.discount_type === 'percent' ? (gross * toNumber(item.discount_value)) / 100 : toNumber(item.discount_value) * quantity
   return Math.max(0, gross - discount)
 }
 
