@@ -162,6 +162,7 @@ export interface Database {
           subtotal: number
           discount_type: DiscountType
           discount_value: number
+          freight: number
           total: number
           notes: string | null
           stage_history: StageHistoryEntry[]

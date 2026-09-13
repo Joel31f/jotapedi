@@ -145,6 +145,12 @@ export function OrderPrintPage() {
                 -{order.discount_type === 'percent' ? `${order.discount_value}%` : formatCurrency(order.discount_value)}
               </span>
             </div>
+            {order.freight ? (
+              <div className="flex justify-between py-1">
+                <span className="text-neutral-500">Frete</span>
+                <span>{formatCurrency(order.freight)}</span>
+              </div>
+            ) : null}
             <div className="flex justify-between border-t border-neutral-300 py-2 text-base font-semibold">
               <span>Total</span>
               <span>{formatCurrency(order.total)}</span>

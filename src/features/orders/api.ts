@@ -127,6 +127,7 @@ export interface OrderPayload {
   subtotal: number
   discount_type: 'percent' | 'value'
   discount_value: number
+  freight: number
   total: number
   notes: string | null
   created_by?: string | null
