@@ -20,16 +20,24 @@ export function ImportDialog({
   open,
   onOpenChange,
   title,
+  description = 'Importe um arquivo .csv ou .xlsx e associe as colunas aos campos do sistema.',
   templateFilename,
   targets,
   onImport,
+  actionLabel = 'Importar',
+  actionLabelIng = 'Importando',
+  successVerb = 'importado(s)',
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   title: string
+  description?: string
   templateFilename: string
   targets: MappingTarget[]
   onImport: (rows: Record<string, string>[]) => Promise<number>
+  actionLabel?: string
+  actionLabelIng?: string
+  successVerb?: string
 }) {
   const [step, setStep] = useState<Step>('select')
   const [headers, setHeaders] = useState<string[]>([])
@@ -72,7 +80,7 @@ export function ImportDialog({
     try {
       const mappedRows = buildMappedRows(rows, headers, mapping)
       const count = await onImport(mappedRows)
-      toast.success(`${count} registro(s) importado(s) com sucesso`)
+      toast.success(`${count} registro(s) ${successVerb} com sucesso`)
       handleOpenChange(false)
     } catch (error) {
       toast.error('Erro ao importar', { description: error instanceof Error ? error.message : undefined })
@@ -88,7 +96,7 @@ export function ImportDialog({
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>Importe um arquivo .csv ou .xlsx e associe as colunas aos campos do sistema.</DialogDescription>
+          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
         {step === 'select' && (
@@ -200,7 +208,7 @@ export function ImportDialog({
                 Voltar
               </Button>
               <Button type="button" disabled={importing} onClick={handleImport}>
-                {importing ? 'Importando…' : `Importar ${rows.length} registro(s)`}
+                {importing ? `${actionLabelIng}…` : `${actionLabel} ${rows.length} registro(s)`}
               </Button>
             </DialogFooter>
           </div>
