@@ -206,7 +206,9 @@ export function OrderFormDialog({
 
   const removeItem = (key: string) => setItems((prev) => (prev.length > 1 ? prev.filter((item) => item.key !== key) : prev))
 
+  const grossSubtotal = items.reduce((sum, item) => sum + toNumber(item.quantity) * toNumber(item.unit_price), 0)
   const subtotal = items.reduce((sum, item) => sum + itemTotal(item), 0)
+  const itemDiscountsTotal = grossSubtotal - subtotal
   const globalDiscountAmount = discountType === 'percent' ? (subtotal * toNumber(discountValue)) / 100 : toNumber(discountValue)
   const total = Math.max(0, subtotal - globalDiscountAmount) + toNumber(freight)
 
@@ -461,8 +463,11 @@ export function OrderFormDialog({
               </div>
             </div>
             <div className="text-right text-sm">
-              <p className="text-muted-foreground">Subtotal: {formatCurrency(subtotal)}</p>
-              <p className="text-muted-foreground">Desconto: -{formatCurrency(globalDiscountAmount)}</p>
+              <p className="text-muted-foreground">Subtotal: {formatCurrency(grossSubtotal)}</p>
+              {itemDiscountsTotal > 0 ? (
+                <p className="text-muted-foreground">Desconto nos itens: -{formatCurrency(itemDiscountsTotal)}</p>
+              ) : null}
+              <p className="text-muted-foreground">Desconto global: -{formatCurrency(globalDiscountAmount)}</p>
               <p className="text-muted-foreground">Frete: {formatCurrency(toNumber(freight))}</p>
               <p className="text-base font-semibold text-foreground">Total: {formatCurrency(total)}</p>
             </div>

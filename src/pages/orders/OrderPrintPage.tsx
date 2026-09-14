@@ -63,6 +63,8 @@ export function OrderPrintPage() {
         .filter(Boolean)
         .join(', ')
     : ''
+  const itemsGrossSubtotal = order.items.reduce((sum: number, item: any) => sum + item.quantity * item.unit_price, 0)
+  const itemDiscountsTotal = itemsGrossSubtotal - order.subtotal
 
   return (
     <div className="min-h-svh bg-white text-neutral-900">
@@ -144,10 +146,16 @@ export function OrderPrintPage() {
           <div className="w-56 text-sm">
             <div className="flex justify-between py-1">
               <span className="text-neutral-500">Subtotal</span>
-              <span>{formatCurrency(order.subtotal)}</span>
+              <span>{formatCurrency(itemsGrossSubtotal)}</span>
             </div>
+            {itemDiscountsTotal > 0 ? (
+              <div className="flex justify-between py-1">
+                <span className="text-neutral-500">Desconto nos itens</span>
+                <span>-{formatCurrency(itemDiscountsTotal)}</span>
+              </div>
+            ) : null}
             <div className="flex justify-between py-1">
-              <span className="text-neutral-500">Desconto</span>
+              <span className="text-neutral-500">Desconto global</span>
               <span>
                 -{order.discount_type === 'percent' ? `${order.discount_value}%` : formatCurrency(order.discount_value)}
               </span>
