@@ -43,8 +43,10 @@ function toNumber(value: string) {
 }
 
 function itemTotal(item: LineItem) {
-  const gross = toNumber(item.quantity) * toNumber(item.unit_price)
-  const discount = item.discount_type === 'percent' ? (gross * toNumber(item.discount_value)) / 100 : toNumber(item.discount_value)
+  const quantity = toNumber(item.quantity)
+  const gross = quantity * toNumber(item.unit_price)
+  const discount =
+    item.discount_type === 'percent' ? (gross * toNumber(item.discount_value)) / 100 : toNumber(item.discount_value) * quantity
   return Math.max(0, gross - discount)
 }
 
@@ -69,6 +71,7 @@ export function OrderFormDialog({
   const [items, setItems] = useState<LineItem[]>([emptyItem()])
   const [discountType, setDiscountType] = useState<DiscountType>('value')
   const [discountValue, setDiscountValue] = useState('0')
+  const [freight, setFreight] = useState('0')
   const [notes, setNotes] = useState('')
 
   const createOrder = useCreateOrder()
@@ -95,6 +98,7 @@ export function OrderFormDialog({
       }
       setDiscountType(order.discount_type)
       setDiscountValue(String(order.discount_value))
+      setFreight(String(order.freight))
       setNotes(order.notes ?? '')
       setItems(
         order.items.length > 0
@@ -118,6 +122,7 @@ export function OrderFormDialog({
       setAssignedToLabel(activeMembership?.name ?? null)
       setDiscountType('value')
       setDiscountValue('0')
+      setFreight('0')
       setNotes('')
       setItems([emptyItem()])
     }
@@ -201,9 +206,11 @@ export function OrderFormDialog({
 
   const removeItem = (key: string) => setItems((prev) => (prev.length > 1 ? prev.filter((item) => item.key !== key) : prev))
 
+  const grossSubtotal = items.reduce((sum, item) => sum + toNumber(item.quantity) * toNumber(item.unit_price), 0)
   const subtotal = items.reduce((sum, item) => sum + itemTotal(item), 0)
+  const itemDiscountsTotal = grossSubtotal - subtotal
   const globalDiscountAmount = discountType === 'percent' ? (subtotal * toNumber(discountValue)) / 100 : toNumber(discountValue)
-  const total = Math.max(0, subtotal - globalDiscountAmount)
+  const total = Math.max(0, subtotal - globalDiscountAmount) + toNumber(freight)
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -224,6 +231,7 @@ export function OrderFormDialog({
       subtotal,
       discount_type: discountType,
       discount_value: toNumber(discountValue),
+      freight: toNumber(freight),
       total,
       notes: notes.trim() || null,
       ...(order ? {} : { created_by: activeMembership?.id ?? null }),
@@ -444,10 +452,23 @@ export function OrderFormDialog({
                   <SelectItem value="percent">%</SelectItem>
                 </SelectContent>
               </Select>
+              <div className="flex flex-col gap-1">
+                <Label className="text-xs">Frete</Label>
+                <Input
+                  className="h-8 w-28"
+                  inputMode="decimal"
+                  value={freight}
+                  onChange={(e) => setFreight(e.target.value)}
+                />
+              </div>
             </div>
             <div className="text-right text-sm">
-              <p className="text-muted-foreground">Subtotal: {formatCurrency(subtotal)}</p>
-              <p className="text-muted-foreground">Desconto: -{formatCurrency(globalDiscountAmount)}</p>
+              <p className="text-muted-foreground">Subtotal: {formatCurrency(grossSubtotal)}</p>
+              {itemDiscountsTotal > 0 ? (
+                <p className="text-muted-foreground">Desconto nos itens: -{formatCurrency(itemDiscountsTotal)}</p>
+              ) : null}
+              <p className="text-muted-foreground">Desconto global: -{formatCurrency(globalDiscountAmount)}</p>
+              <p className="text-muted-foreground">Frete: {formatCurrency(toNumber(freight))}</p>
               <p className="text-base font-semibold text-foreground">Total: {formatCurrency(total)}</p>
             </div>
           </div>

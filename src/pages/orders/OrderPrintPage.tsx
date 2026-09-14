@@ -63,6 +63,8 @@ export function OrderPrintPage() {
         .filter(Boolean)
         .join(', ')
     : ''
+  const itemsGrossSubtotal = order.items.reduce((sum: number, item: any) => sum + item.quantity * item.unit_price, 0)
+  const itemDiscountsTotal = itemsGrossSubtotal - order.subtotal
 
   return (
     <div className="min-h-svh bg-white text-neutral-900">
@@ -117,19 +119,26 @@ export function OrderPrintPage() {
               <th className="py-2 pr-4">Descrição</th>
               <th className="py-2 pr-4 text-right">Qtd.</th>
               <th className="py-2 pr-4 text-right">Preço unit.</th>
+              <th className="py-2 pr-4 text-right">Desconto</th>
               <th className="py-2 text-right">Total</th>
             </tr>
           </thead>
           <tbody>
-            {order.items.map((item: any) => (
-              <tr key={item.id} className="border-b border-neutral-100">
-                <td className="py-2 pr-4 whitespace-nowrap text-neutral-500">{item.products?.sku ?? '—'}</td>
-                <td className="py-2 pr-4">{item.description}</td>
-                <td className="py-2 pr-4 text-right whitespace-nowrap">{item.quantity}</td>
-                <td className="py-2 pr-4 text-right whitespace-nowrap">{formatCurrency(item.unit_price)}</td>
-                <td className="py-2 text-right whitespace-nowrap">{formatCurrency(item.total)}</td>
-              </tr>
-            ))}
+            {order.items.map((item: any) => {
+              const itemDiscount = item.quantity * item.unit_price - item.total
+              return (
+                <tr key={item.id} className="border-b border-neutral-100">
+                  <td className="py-2 pr-4 whitespace-nowrap text-neutral-500">{item.products?.sku ?? '—'}</td>
+                  <td className="py-2 pr-4">{item.description}</td>
+                  <td className="py-2 pr-4 text-right whitespace-nowrap">{item.quantity}</td>
+                  <td className="py-2 pr-4 text-right whitespace-nowrap">{formatCurrency(item.unit_price)}</td>
+                  <td className="py-2 pr-4 text-right whitespace-nowrap">
+                    {itemDiscount > 0 ? `-${formatCurrency(itemDiscount)}` : '—'}
+                  </td>
+                  <td className="py-2 text-right whitespace-nowrap">{formatCurrency(item.total)}</td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
 
@@ -137,14 +146,26 @@ export function OrderPrintPage() {
           <div className="w-56 text-sm">
             <div className="flex justify-between py-1">
               <span className="text-neutral-500">Subtotal</span>
-              <span>{formatCurrency(order.subtotal)}</span>
+              <span>{formatCurrency(itemsGrossSubtotal)}</span>
             </div>
+            {itemDiscountsTotal > 0 ? (
+              <div className="flex justify-between py-1">
+                <span className="text-neutral-500">Desconto nos itens</span>
+                <span>-{formatCurrency(itemDiscountsTotal)}</span>
+              </div>
+            ) : null}
             <div className="flex justify-between py-1">
-              <span className="text-neutral-500">Desconto</span>
+              <span className="text-neutral-500">Desconto global</span>
               <span>
                 -{order.discount_type === 'percent' ? `${order.discount_value}%` : formatCurrency(order.discount_value)}
               </span>
             </div>
+            {order.freight ? (
+              <div className="flex justify-between py-1">
+                <span className="text-neutral-500">Frete</span>
+                <span>{formatCurrency(order.freight)}</span>
+              </div>
+            ) : null}
             <div className="flex justify-between border-t border-neutral-300 py-2 text-base font-semibold">
               <span>Total</span>
               <span>{formatCurrency(order.total)}</span>
