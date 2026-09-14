@@ -462,8 +462,12 @@ export function ProductsPage() {
         open={updateOpen}
         onOpenChange={setUpdateOpen}
         title="Atualizar produtos por planilha"
+        description="Isso não cria produtos novos — atualiza os produtos que já existem, encontrando cada um pelo SKU. Só os campos que você mapear abaixo são alterados."
         templateFilename="modelo_atualizar_produtos.csv"
         targets={UPDATE_TARGETS}
+        actionLabel="Atualizar"
+        actionLabelIng="Atualizando"
+        successVerb="atualizado(s)"
         onImport={async (importedRows) => {
           const rows = importedRows
             .filter((row) => row.sku)
