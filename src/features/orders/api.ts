@@ -130,6 +130,10 @@ export interface OrderPayload {
   freight: number
   total: number
   notes: string | null
+  contact_name: string | null
+  shipping_method: string | null
+  payment_terms: string | null
+  delivery_date: string | null
   created_by?: string | null
   assigned_to?: string | null
   brand_id?: string | null

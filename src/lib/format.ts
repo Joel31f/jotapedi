@@ -7,6 +7,16 @@ export function formatDate(value: string | Date) {
   return new Intl.DateTimeFormat('pt-BR').format(date)
 }
 
+export function formatDateOnly(value: string) {
+  const [year, month, day] = value.split('-')
+  return `${day}/${month}/${year}`
+}
+
+export function formatDateTimeFull(value: string | Date) {
+  const date = typeof value === 'string' ? new Date(value) : value
+  return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'medium' }).format(date)
+}
+
 export function formatDateTime(value: string | Date) {
   const date = typeof value === 'string' ? new Date(value) : value
   return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(date)

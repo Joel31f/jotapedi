@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Printer } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { formatCurrency, formatDate, formatDateTime } from '@/lib/format'
+import { formatCurrency, formatDateOnly, formatDateTime, formatDateTimeFull } from '@/lib/format'
 import { useWorkspace } from '@/providers/WorkspaceProvider'
 
 function usePrintableOrder(id: string | undefined) {
@@ -14,11 +14,21 @@ function usePrintableOrder(id: string | undefined) {
       const { data: order, error } = await supabase
         .from('orders')
         .select(
-          '*, clients(name, company, document, state_registration, emails, phones, whatsapp, address_street, address_number, address_neighborhood, address_city, address_state), pipeline_stages(name), brands(name, logo_url)',
+          '*, clients(name, company, document, state_registration, emails, phones, whatsapp, address_street, address_number, address_neighborhood, address_city, address_state, address_zip), pipeline_stages(name), brands(name, logo_url)',
         )
         .eq('id', id!)
         .single()
       if (error) throw error
+
+      let seller: { name: string | null; email: string } | null = null
+      if ((order as any).assigned_to) {
+        const { data } = await supabase
+          .from('users')
+          .select('name, email')
+          .eq('id', (order as any).assigned_to)
+          .single()
+        seller = data
+      }
 
       const { data: items, error: itemsError } = await supabase
         .from('order_items')
@@ -27,7 +37,7 @@ function usePrintableOrder(id: string | undefined) {
         .order('position', { ascending: true })
       if (itemsError) throw itemsError
 
-      return { ...(order as any), items: items ?? [] }
+      return { ...(order as any), items: items ?? [], seller }
     },
   })
 }
@@ -61,8 +71,16 @@ export function OrderPrintPage() {
   const address = client
     ? [client.address_street, client.address_number, client.address_neighborhood, client.address_city, client.address_state]
         .filter(Boolean)
-        .join(', ')
+        .join(', ') + (client.address_zip ? ` — CEP ${client.address_zip}` : '')
     : ''
+  const seller = order.seller ? [order.seller.name, order.seller.email].filter(Boolean).join(' - ') : ''
+  const orderDetails = [
+    { label: 'Contato', value: order.contact_name },
+    { label: 'Transporte', value: order.shipping_method },
+    { label: 'Condição de pagamento', value: order.payment_terms },
+    { label: 'Previsão de entrega', value: order.delivery_date ? formatDateOnly(order.delivery_date) : null },
+    { label: 'Vendedor', value: seller },
+  ].filter((detail) => detail.value)
   const itemsGrossSubtotal = order.items.reduce((sum: number, item: any) => sum + item.quantity * item.unit_price, 0)
   const itemDiscountsTotal = itemsGrossSubtotal - order.subtotal
 
@@ -91,7 +109,7 @@ export function OrderPrintPage() {
             <p className="text-sm text-neutral-500">Pedido #{order.id.slice(0, 8).toUpperCase()}</p>
           </div>
           <div className="text-right text-sm text-neutral-500">
-            <p>Data: {formatDate(order.created_at)}</p>
+            <p>Emissão: {formatDateTimeFull(order.created_at)}</p>
             <p>Estágio: {order.pipeline_stages?.name ?? '—'}</p>
           </div>
         </div>
@@ -111,6 +129,17 @@ export function OrderPrintPage() {
           </p>
           {address ? <p className="text-sm text-neutral-600">{address}</p> : null}
         </div>
+
+        {orderDetails.length > 0 ? (
+          <div className="mb-6 grid grid-cols-2 gap-x-6 gap-y-2 border-y border-neutral-200 py-3 text-sm">
+            {orderDetails.map((detail) => (
+              <p key={detail.label} className="text-neutral-700">
+                <span className="text-xs font-medium uppercase text-neutral-400">{detail.label}: </span>
+                {detail.value}
+              </p>
+            ))}
+          </div>
+        ) : null}
 
         <table className="mb-6 w-full border-collapse text-sm">
           <thead>

@@ -73,6 +73,10 @@ export function OrderFormDialog({
   const [discountValue, setDiscountValue] = useState('0')
   const [freight, setFreight] = useState('0')
   const [notes, setNotes] = useState('')
+  const [contactName, setContactName] = useState('')
+  const [shippingMethod, setShippingMethod] = useState('')
+  const [paymentTerms, setPaymentTerms] = useState('')
+  const [deliveryDate, setDeliveryDate] = useState('')
 
   const createOrder = useCreateOrder()
   const updateOrder = useUpdateOrder()
@@ -100,6 +104,10 @@ export function OrderFormDialog({
       setDiscountValue(String(order.discount_value))
       setFreight(String(order.freight))
       setNotes(order.notes ?? '')
+      setContactName(order.contact_name ?? '')
+      setShippingMethod(order.shipping_method ?? '')
+      setPaymentTerms(order.payment_terms ?? '')
+      setDeliveryDate(order.delivery_date ?? '')
       setItems(
         order.items.length > 0
           ? order.items.map((i) => ({
@@ -124,6 +132,10 @@ export function OrderFormDialog({
       setDiscountValue('0')
       setFreight('0')
       setNotes('')
+      setContactName('')
+      setShippingMethod('')
+      setPaymentTerms('')
+      setDeliveryDate('')
       setItems([emptyItem()])
     }
   }, [open, order, defaultClient, stages, activeMembership])
@@ -234,6 +246,10 @@ export function OrderFormDialog({
       freight: toNumber(freight),
       total,
       notes: notes.trim() || null,
+      contact_name: contactName.trim() || null,
+      shipping_method: shippingMethod.trim() || null,
+      payment_terms: paymentTerms.trim() || null,
+      delivery_date: deliveryDate || null,
       ...(order ? {} : { created_by: activeMembership?.id ?? null }),
     }
 
@@ -336,6 +352,35 @@ export function OrderFormDialog({
                   setAssignedToLabel(option.label)
                 }}
               />
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <div className="flex min-w-[180px] flex-1 flex-col gap-1.5">
+              <Label htmlFor="contact_name">Contato</Label>
+              <Input id="contact_name" value={contactName} onChange={(e) => setContactName(e.target.value)} />
+            </div>
+            <div className="flex min-w-[220px] flex-1 flex-col gap-1.5">
+              <Label htmlFor="shipping_method">Transporte</Label>
+              <Input
+                id="shipping_method"
+                placeholder="Ex: Cliente Retira - Avisar Antes"
+                value={shippingMethod}
+                onChange={(e) => setShippingMethod(e.target.value)}
+              />
+            </div>
+            <div className="flex min-w-[220px] flex-1 flex-col gap-1.5">
+              <Label htmlFor="payment_terms">Condição de pagamento</Label>
+              <Input
+                id="payment_terms"
+                placeholder="Ex: À Negociar - Pagamento Normal"
+                value={paymentTerms}
+                onChange={(e) => setPaymentTerms(e.target.value)}
+              />
+            </div>
+            <div className="flex min-w-[160px] flex-1 flex-col gap-1.5">
+              <Label htmlFor="delivery_date">Previsão de entrega</Label>
+              <Input id="delivery_date" type="date" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} />
             </div>
           </div>
 

@@ -165,6 +165,10 @@ export interface Database {
           freight: number
           total: number
           notes: string | null
+          contact_name: string | null
+          shipping_method: string | null
+          payment_terms: string | null
+          delivery_date: string | null
           stage_history: StageHistoryEntry[]
           created_by: string | null
           assigned_to: string | null
