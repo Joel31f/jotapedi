@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Plus, Printer, Trash2 } from 'lucide-react'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -83,6 +84,41 @@ export function OrderFormDialog({
   const { data: brands = [] } = useBrandsQuery()
   const saving = createOrder.isPending || updateOrder.isPending
 
+  const { data: suggestions } = useQuery({
+    queryKey: ['order-field-suggestions', activeWorkspace?.id],
+    enabled: !!activeWorkspace && open,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('orders')
+        .select('shipping_method, payment_terms')
+        .eq('workspace_id', activeWorkspace!.id)
+        .order('created_at', { ascending: false })
+        .limit(300)
+      const unique = (values: (string | null)[]) => [...new Set(values.filter((v): v is string => !!v))]
+      return {
+        shipping: unique((data ?? []).map((o) => o.shipping_method)),
+        payment: unique((data ?? []).map((o) => o.payment_terms)),
+      }
+    },
+  })
+
+  const prefillFromLastOrder = async (clientIdToFill: string) => {
+    const { data } = await supabase
+      .from('orders')
+      .select('contact_name, shipping_method, payment_terms')
+      .eq('client_id', clientIdToFill)
+      .order('created_at', { ascending: false })
+      .limit(10)
+    const firstFilled = (pick: (o: NonNullable<typeof data>[number]) => string | null) =>
+      (data ?? []).map(pick).find((v) => !!v) ?? ''
+    const contact = firstFilled((o) => o.contact_name)
+    const shipping = firstFilled((o) => o.shipping_method)
+    const payment = firstFilled((o) => o.payment_terms)
+    setContactName((prev) => prev || contact)
+    setShippingMethod((prev) => prev || shipping)
+    setPaymentTerms((prev) => prev || payment)
+  }
+
   useEffect(() => {
     if (!open) return
     if (order) {
@@ -137,6 +173,7 @@ export function OrderFormDialog({
       setPaymentTerms('')
       setDeliveryDate('')
       setItems([emptyItem()])
+      if (defaultClient?.id) prefillFromLastOrder(defaultClient.id)
     }
   }, [open, order, defaultClient, stages, activeMembership])
 
@@ -299,6 +336,7 @@ export function OrderFormDialog({
                 onSelect={(option) => {
                   setClientId(option.id)
                   setClientLabel(option.label)
+                  if (!order) prefillFromLastOrder(option.id)
                 }}
               />
             </div>
@@ -365,18 +403,30 @@ export function OrderFormDialog({
               <Input
                 id="shipping_method"
                 placeholder="Ex: Cliente Retira - Avisar Antes"
+                list="shipping-suggestions"
                 value={shippingMethod}
                 onChange={(e) => setShippingMethod(e.target.value)}
               />
+              <datalist id="shipping-suggestions">
+                {(suggestions?.shipping ?? []).map((value) => (
+                  <option key={value} value={value} />
+                ))}
+              </datalist>
             </div>
             <div className="flex min-w-[220px] flex-1 flex-col gap-1.5">
               <Label htmlFor="payment_terms">Condição de pagamento</Label>
               <Input
                 id="payment_terms"
                 placeholder="Ex: À Negociar - Pagamento Normal"
+                list="payment-suggestions"
                 value={paymentTerms}
                 onChange={(e) => setPaymentTerms(e.target.value)}
               />
+              <datalist id="payment-suggestions">
+                {(suggestions?.payment ?? []).map((value) => (
+                  <option key={value} value={value} />
+                ))}
+              </datalist>
             </div>
             <div className="flex min-w-[160px] flex-1 flex-col gap-1.5">
               <Label htmlFor="delivery_date">Previsão de entrega</Label>
