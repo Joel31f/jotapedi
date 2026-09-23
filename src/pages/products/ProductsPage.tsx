@@ -18,6 +18,7 @@ import {
   useBulkInsertProducts,
   useBulkUpdateProductsBySku,
   useProductCategoriesQuery,
+  useProductQuery,
   useProductsQuery,
   useUpdateProduct,
   useDeleteProduct,
@@ -76,14 +77,50 @@ export function ProductsPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [selectAllMatching, setSelectAllMatching] = useState(false)
 
+  // Só na primeira renderização: reabre o diálogo certo se a URL já pedir
+  // (link "?new=1" vindo de outra tela, ou recarregamento com "?edit=<id>" ainda na URL).
   useEffect(() => {
     if (searchParams.get('new') === '1') {
       setEditingProduct(null)
       setFormOpen(true)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const editId = searchParams.get('edit')
+  const { data: editProductFromUrl } = useProductQuery(editId ?? undefined)
+
+  useEffect(() => {
+    if (editId && editProductFromUrl) {
+      setEditingProduct(editProductFromUrl)
+      setFormOpen(true)
+    }
+  }, [editId, editProductFromUrl])
+
+  const openNewDialog = () => {
+    setEditingProduct(null)
+    setFormOpen(true)
+    searchParams.delete('edit')
+    searchParams.set('new', '1')
+    setSearchParams(searchParams, { replace: true })
+  }
+
+  const openEditDialog = (product: Product) => {
+    setEditingProduct(product)
+    setFormOpen(true)
+    searchParams.delete('new')
+    searchParams.set('edit', product.id)
+    setSearchParams(searchParams, { replace: true })
+  }
+
+  const handleFormOpenChange = (open: boolean) => {
+    setFormOpen(open)
+    if (!open && (searchParams.get('edit') || searchParams.get('new'))) {
+      searchParams.delete('edit')
       searchParams.delete('new')
       setSearchParams(searchParams, { replace: true })
     }
-  }, [searchParams, setSearchParams])
+  }
 
   const filters: ProductFilters = {
     search: debouncedSearch,
@@ -194,12 +231,7 @@ export function ProductsPage() {
             <Upload className="size-4" />
             Importar
           </Button>
-          <Button
-            onClick={() => {
-              setEditingProduct(null)
-              setFormOpen(true)
-            }}
-          >
+          <Button onClick={openNewDialog}>
             <Plus className="size-4" />
             Novo produto
           </Button>
@@ -399,10 +431,7 @@ export function ProductsPage() {
                       <Button
                         size="icon-sm"
                         variant="ghost"
-                        onClick={() => {
-                          setEditingProduct(product)
-                          setFormOpen(true)
-                        }}
+                        onClick={() => openEditDialog(product)}
                       >
                         <Pencil className="size-3.5" />
                       </Button>
@@ -432,7 +461,7 @@ export function ProductsPage() {
         </div>
       </div>
 
-      <ProductFormDialog open={formOpen} onOpenChange={setFormOpen} product={editingProduct} />
+      <ProductFormDialog open={formOpen} onOpenChange={handleFormOpenChange} product={editingProduct} />
 
       <ImportDialog
         open={importOpen}

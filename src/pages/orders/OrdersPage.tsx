@@ -46,10 +46,42 @@ export function OrdersPage() {
     if (searchParams.get('new') === '1') {
       setEditingOrderId(null)
       setFormOpen(true)
-      searchParams.delete('new')
-      setSearchParams(searchParams, { replace: true })
     }
-  }, [searchParams, setSearchParams])
+    const editIdInit = searchParams.get('edit')
+    if (editIdInit) {
+      setEditingOrderId(editIdInit)
+      setFormOpen(true)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const openNewDialog = () => {
+    setEditingOrderId(null)
+    setFormOpen(true)
+    searchParams.delete('edit')
+    searchParams.set('new', '1')
+    setSearchParams(searchParams, { replace: true })
+  }
+
+  const openEditDialog = (orderId: string) => {
+    setEditingOrderId(orderId)
+    setFormOpen(true)
+    searchParams.delete('new')
+    searchParams.set('edit', orderId)
+    setSearchParams(searchParams, { replace: true })
+  }
+
+  const handleFormOpenChange = (open: boolean) => {
+    setFormOpen(open)
+    if (!open) {
+      setEditingOrderId(null)
+      if (searchParams.get('edit') || searchParams.get('new')) {
+        searchParams.delete('edit')
+        searchParams.delete('new')
+        setSearchParams(searchParams, { replace: true })
+      }
+    }
+  }
 
   const { data: editingOrder } = useOrderQuery(editingOrderId ?? undefined)
   const { data, isLoading } = useOrdersQuery(filters, page)
@@ -128,12 +160,7 @@ export function OrdersPage() {
           <h1 className="text-xl font-semibold text-foreground">Pedidos</h1>
           <p className="text-sm text-muted-foreground">{total} pedido(s)</p>
         </div>
-        <Button
-          onClick={() => {
-            setEditingOrderId(null)
-            setFormOpen(true)
-          }}
-        >
+        <Button onClick={openNewDialog}>
           <Plus className="size-4" />
           Novo pedido
         </Button>
@@ -226,10 +253,7 @@ export function OrdersPage() {
             renderCard={(order) => (
               <button
                 className="w-full text-left"
-                onClick={() => {
-                  setEditingOrderId(order.id)
-                  setFormOpen(true)
-                }}
+                onClick={() => openEditDialog(order.id)}
               >
                 <p className="text-sm font-medium text-foreground">{order.client?.name ?? 'Sem cliente'}</p>
                 <p className="text-xs text-muted-foreground">{formatDate(order.created_at)}</p>
@@ -269,10 +293,7 @@ export function OrdersPage() {
                     <TableRow
                       key={order.id}
                       className="cursor-pointer"
-                      onClick={() => {
-                        setEditingOrderId(order.id)
-                        setFormOpen(true)
-                      }}
+                      onClick={() => openEditDialog(order.id)}
                     >
                       <TableCell className="font-medium text-foreground">{order.client?.name ?? '—'}</TableCell>
                       <TableCell>
@@ -316,10 +337,7 @@ export function OrdersPage() {
 
       <OrderFormDialog
         open={formOpen}
-        onOpenChange={(next) => {
-          setFormOpen(next)
-          if (!next) setEditingOrderId(null)
-        }}
+        onOpenChange={handleFormOpenChange}
         order={editingOrder ?? null}
       />
 

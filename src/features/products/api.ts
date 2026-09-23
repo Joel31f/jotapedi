@@ -51,6 +51,18 @@ export function useProductsQuery(filters: ProductFilters, page: number) {
   })
 }
 
+export function useProductQuery(id: string | undefined) {
+  return useQuery({
+    queryKey: ['product', id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data, error } = await supabase.from('products').select('*').eq('id', id!).single()
+      if (error) throw error
+      return data as Product
+    },
+  })
+}
+
 export function useProductCategoriesQuery() {
   const { activeWorkspace } = useWorkspace()
 

@@ -18,6 +18,7 @@ import {
   useBulkDeleteClients,
   useBulkDeleteClientsByFilter,
   useBulkInsertClients,
+  useClientQuery,
   useClientsQuery,
   useDeleteClient,
   useUpdateClientStage,
@@ -88,10 +89,44 @@ export function ClientsPage() {
     if (searchParams.get('new') === '1') {
       setEditingClient(null)
       setFormOpen(true)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const editId = searchParams.get('edit')
+  const { data: editClientFromUrl } = useClientQuery(editId ?? undefined)
+
+  useEffect(() => {
+    if (editId && editClientFromUrl) {
+      setEditingClient(editClientFromUrl)
+      setFormOpen(true)
+    }
+  }, [editId, editClientFromUrl])
+
+  const openNewDialog = () => {
+    setEditingClient(null)
+    setFormOpen(true)
+    searchParams.delete('edit')
+    searchParams.set('new', '1')
+    setSearchParams(searchParams, { replace: true })
+  }
+
+  const openEditDialog = (client: ClientWithTags) => {
+    setEditingClient(client)
+    setFormOpen(true)
+    searchParams.delete('new')
+    searchParams.set('edit', client.id)
+    setSearchParams(searchParams, { replace: true })
+  }
+
+  const handleFormOpenChange = (open: boolean) => {
+    setFormOpen(open)
+    if (!open && (searchParams.get('edit') || searchParams.get('new'))) {
+      searchParams.delete('edit')
       searchParams.delete('new')
       setSearchParams(searchParams, { replace: true })
     }
-  }, [searchParams, setSearchParams])
+  }
 
   const filters: ClientFilters = { search: debouncedSearch, leadStage }
   const { data, isLoading } = useClientsQuery(filters, page)
@@ -180,12 +215,7 @@ export function ClientsPage() {
             <Upload className="size-4" />
             Importar
           </Button>
-          <Button
-            onClick={() => {
-              setEditingClient(null)
-              setFormOpen(true)
-            }}
-          >
+          <Button onClick={openNewDialog}>
             <Plus className="size-4" />
             Novo cliente
           </Button>
@@ -328,14 +358,7 @@ export function ClientsPage() {
                       </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <div className="flex justify-end gap-1">
-                          <Button
-                            size="icon-sm"
-                            variant="ghost"
-                            onClick={() => {
-                              setEditingClient(client)
-                              setFormOpen(true)
-                            }}
-                          >
+                          <Button size="icon-sm" variant="ghost" onClick={() => openEditDialog(client)}>
                             <Pencil className="size-3.5" />
                           </Button>
                           <Button size="icon-sm" variant="ghost" onClick={() => setDeletingClient(client)}>
@@ -392,7 +415,7 @@ export function ClientsPage() {
         </TabsContent>
       </Tabs>
 
-      <ClientFormDialog open={formOpen} onOpenChange={setFormOpen} client={editingClient} />
+      <ClientFormDialog open={formOpen} onOpenChange={handleFormOpenChange} client={editingClient} />
 
       <ImportDialog
         open={importOpen}
