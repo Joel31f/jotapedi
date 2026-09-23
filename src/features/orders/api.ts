@@ -185,8 +185,9 @@ export function useUpdateOrder() {
 
   return useMutation({
     mutationFn: async ({ id, payload, items }: { id: string; payload: OrderPayload; items: OrderItemPayload[] }) => {
-      const { error } = await supabase.from('orders').update(payload).eq('id', id)
+      const { error, count } = await supabase.from('orders').update(payload, { count: 'exact' }).eq('id', id)
       if (error) throw new Error(error.message)
+      if (!count) throw new Error('Pedido não encontrado ou sem permissão para editar nesta área de trabalho.')
       await replaceOrderItems(id, items)
     },
     onSuccess: (_data, variables) => {

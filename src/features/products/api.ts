@@ -110,8 +110,9 @@ export function useUpdateProduct() {
 
   return useMutation({
     mutationFn: async ({ id, payload }: { id: string; payload: ProductUpdate }) => {
-      const { error } = await supabase.from('products').update(payload).eq('id', id)
+      const { error, count } = await supabase.from('products').update(payload, { count: 'exact' }).eq('id', id)
       if (error) throw new Error(friendlyError(error))
+      if (!count) throw new Error('Produto não encontrado ou sem permissão para editar nesta área de trabalho.')
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] })

@@ -151,8 +151,9 @@ export function useUpdateClient() {
 
   return useMutation({
     mutationFn: async ({ id, payload, tagIds }: { id: string; payload: ClientUpdate; tagIds?: string[] }) => {
-      const { error } = await supabase.from('clients').update(payload).eq('id', id)
+      const { error, count } = await supabase.from('clients').update(payload, { count: 'exact' }).eq('id', id)
       if (error) throw new Error(error.message)
+      if (!count) throw new Error('Cliente não encontrado ou sem permissão para editar nesta área de trabalho.')
       if (tagIds) await syncClientTags(id, tagIds)
     },
     onSuccess: (_data, variables) => {
