@@ -15,6 +15,7 @@ import { supabase } from '@/lib/supabase'
 import { useWorkspace } from '@/providers/WorkspaceProvider'
 import { useCreateOrder, useUpdateOrder, type OrderWithItems, type OrderItemPayload } from '@/features/orders/api'
 import { useBrandsQuery } from '@/features/brands/api'
+import { clearDraft, readDraft, writeDraft } from '@/lib/formDraft'
 import type { DiscountType } from '@/types/database'
 
 interface LineItem {
@@ -41,6 +42,24 @@ function emptyItem(): LineItem {
 
 function toNumber(value: string) {
   return Number(value.replace(',', '.')) || 0
+}
+
+interface OrderDraft {
+  clientId: string | null
+  clientLabel: string | null
+  stageId: string
+  brandId: string | null
+  assignedTo: string | null
+  assignedToLabel: string | null
+  items: LineItem[]
+  discountType: DiscountType
+  discountValue: string
+  freight: string
+  notes: string
+  contactName: string
+  shippingMethod: string
+  paymentTerms: string
+  deliveryDate: string
 }
 
 function itemTotal(item: LineItem) {
@@ -119,8 +138,30 @@ export function OrderFormDialog({
     setPaymentTerms((prev) => prev || payment)
   }
 
+  const draftKey = `jotapedi:draft:order:${activeWorkspace?.id ?? 'x'}:${order?.id ?? 'new'}`
+
   useEffect(() => {
     if (!open) return
+    const draft = readDraft<OrderDraft>(draftKey)
+    if (draft && (draft.clientId || draft.items.some((i) => i.description.trim()))) {
+      setClientId(draft.clientId)
+      setClientLabel(draft.clientLabel)
+      setStageId(draft.stageId)
+      setBrandId(draft.brandId)
+      setAssignedTo(draft.assignedTo)
+      setAssignedToLabel(draft.assignedToLabel)
+      setDiscountType(draft.discountType)
+      setDiscountValue(draft.discountValue)
+      setFreight(draft.freight)
+      setNotes(draft.notes)
+      setContactName(draft.contactName)
+      setShippingMethod(draft.shippingMethod)
+      setPaymentTerms(draft.paymentTerms)
+      setDeliveryDate(draft.deliveryDate)
+      setItems(draft.items)
+      toast.info('Rascunho recuperado — continue de onde parou')
+      return
+    }
     if (order) {
       setClientId(order.client?.id ?? null)
       setClientLabel(order.client?.name ?? null)
@@ -175,7 +216,57 @@ export function OrderFormDialog({
       setItems([emptyItem()])
       if (defaultClient?.id) prefillFromLastOrder(defaultClient.id)
     }
-  }, [open, order, defaultClient, stages, activeMembership])
+  }, [open, order, defaultClient, stages, activeMembership, draftKey])
+
+  useEffect(() => {
+    if (!open) return
+    const meaningful =
+      !!clientId || items.some((i) => i.description.trim()) || !!notes.trim() || !!contactName.trim() || !!shippingMethod.trim()
+    if (meaningful) {
+      writeDraft<OrderDraft>(draftKey, {
+        clientId,
+        clientLabel,
+        stageId,
+        brandId,
+        assignedTo,
+        assignedToLabel,
+        items,
+        discountType,
+        discountValue,
+        freight,
+        notes,
+        contactName,
+        shippingMethod,
+        paymentTerms,
+        deliveryDate,
+      })
+    } else {
+      clearDraft(draftKey)
+    }
+  }, [
+    open,
+    draftKey,
+    clientId,
+    clientLabel,
+    stageId,
+    brandId,
+    assignedTo,
+    assignedToLabel,
+    items,
+    discountType,
+    discountValue,
+    freight,
+    notes,
+    contactName,
+    shippingMethod,
+    paymentTerms,
+    deliveryDate,
+  ])
+
+  const handleOpenChange = (next: boolean) => {
+    if (!next) clearDraft(draftKey)
+    onOpenChange(next)
+  }
 
   const searchClients = async (query: string): Promise<ComboboxOption[]> => {
     if (!activeWorkspace) return []
@@ -311,6 +402,7 @@ export function OrderFormDialog({
         await createOrder.mutateAsync({ payload: orderPayload, items: itemsPayload })
         toast.success('Pedido criado')
       }
+      clearDraft(draftKey)
       onOpenChange(false)
     } catch (error) {
       toast.error('Não foi possível salvar o pedido', {
@@ -320,7 +412,7 @@ export function OrderFormDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-h-[92vh] w-[min(96vw,80rem)] max-w-none overflow-y-auto sm:max-w-none">
         <DialogHeader>
           <DialogTitle>{order ? 'Editar pedido' : 'Novo pedido'}</DialogTitle>

@@ -10,7 +10,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { TagPicker } from '@/features/tags/TagPicker'
 import { LEAD_STAGES } from '@/config/leadStages'
 import { useCreateClient, useUpdateClient, type ClientWithTags } from '@/features/clients/api'
+import { useWorkspace } from '@/providers/WorkspaceProvider'
+import { clearDraft, readDraft, writeDraft } from '@/lib/formDraft'
 import type { LeadStage } from '@/types/database'
+
+interface ClientDraft {
+  form: ClientFormValues
+  tagIds: string[]
+}
 
 interface ClientFormValues {
   name: string
@@ -134,6 +141,7 @@ export function ClientFormDialog({
   onOpenChange: (open: boolean) => void
   client: ClientWithTags | null
 }) {
+  const { activeWorkspace } = useWorkspace()
   const [form, setForm] = useState<ClientFormValues>(EMPTY_FORM)
   const [tagIds, setTagIds] = useState<string[]>([])
   const [cepStatus, setCepStatus] = useState<'idle' | 'loading' | 'error'>('idle')
@@ -141,12 +149,34 @@ export function ClientFormDialog({
   const updateClient = useUpdateClient()
   const saving = createClient.isPending || updateClient.isPending
 
+  const draftKey = `jotapedi:draft:client:${activeWorkspace?.id ?? 'x'}:${client?.id ?? 'new'}`
+
   useEffect(() => {
-    if (open) {
-      setForm(client ? toFormValues(client) : EMPTY_FORM)
-      setTagIds(client ? client.tags.map((t) => t.id) : [])
+    if (!open) return
+    const draft = readDraft<ClientDraft>(draftKey)
+    if (draft && draft.form.name.trim()) {
+      setForm(draft.form)
+      setTagIds(draft.tagIds)
+      toast.info('Rascunho recuperado — continue de onde parou')
+      return
     }
-  }, [open, client])
+    setForm(client ? toFormValues(client) : EMPTY_FORM)
+    setTagIds(client ? client.tags.map((t) => t.id) : [])
+  }, [open, client, draftKey])
+
+  useEffect(() => {
+    if (!open) return
+    if (form.name.trim()) {
+      writeDraft<ClientDraft>(draftKey, { form, tagIds })
+    } else {
+      clearDraft(draftKey)
+    }
+  }, [open, draftKey, form, tagIds])
+
+  const handleOpenChange = (next: boolean) => {
+    if (!next) clearDraft(draftKey)
+    onOpenChange(next)
+  }
 
   const setField = <K extends keyof ClientFormValues>(key: K, value: ClientFormValues[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -209,6 +239,7 @@ export function ClientFormDialog({
         await createClient.mutateAsync({ payload, tagIds })
         toast.success('Cliente criado')
       }
+      clearDraft(draftKey)
       onOpenChange(false)
     } catch (error) {
       toast.error('Não foi possível salvar o cliente', {
@@ -218,7 +249,7 @@ export function ClientFormDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{client ? 'Editar cliente' : 'Novo cliente'}</DialogTitle>
