@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { useCreateProduct, useUpdateProduct, type Product } from '@/features/products/api'
+import { useWorkspace } from '@/providers/WorkspaceProvider'
+import { clearDraft, readDraft, writeDraft } from '@/lib/formDraft'
 
 interface ProductFormValues {
   sku: string
@@ -54,14 +56,38 @@ export function ProductFormDialog({
   onOpenChange: (open: boolean) => void
   product: Product | null
 }) {
+  const { activeWorkspace } = useWorkspace()
   const [form, setForm] = useState<ProductFormValues>(EMPTY_FORM)
   const createProduct = useCreateProduct()
   const updateProduct = useUpdateProduct()
   const saving = createProduct.isPending || updateProduct.isPending
 
+  const draftKey = `jotapedi:draft:product:${activeWorkspace?.id ?? 'x'}:${product?.id ?? 'new'}`
+
   useEffect(() => {
-    if (open) setForm(product ? toFormValues(product) : EMPTY_FORM)
-  }, [open, product])
+    if (!open) return
+    const draft = readDraft<ProductFormValues>(draftKey)
+    if (draft && (draft.sku.trim() || draft.description.trim())) {
+      setForm(draft)
+      toast.info('Rascunho recuperado — continue de onde parou')
+      return
+    }
+    setForm(product ? toFormValues(product) : EMPTY_FORM)
+  }, [open, product, draftKey])
+
+  useEffect(() => {
+    if (!open) return
+    if (form.sku.trim() || form.description.trim()) {
+      writeDraft(draftKey, form)
+    } else {
+      clearDraft(draftKey)
+    }
+  }, [open, draftKey, form])
+
+  const handleOpenChange = (next: boolean) => {
+    if (!next) clearDraft(draftKey)
+    onOpenChange(next)
+  }
 
   const setField = <K extends keyof ProductFormValues>(key: K, value: ProductFormValues[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -88,6 +114,7 @@ export function ProductFormDialog({
         await createProduct.mutateAsync(payload)
         toast.success('Produto criado')
       }
+      clearDraft(draftKey)
       onOpenChange(false)
     } catch (error) {
       toast.error('Não foi possível salvar o produto', {
@@ -97,7 +124,7 @@ export function ProductFormDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>{product ? 'Editar produto' : 'Novo produto'}</DialogTitle>
