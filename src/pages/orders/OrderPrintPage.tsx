@@ -114,20 +114,28 @@ export function OrderPrintPage() {
           </div>
         </div>
 
-        <div className="mb-6">
-          <p className="mb-1 text-xs font-medium uppercase text-neutral-400">Cliente</p>
-          <p className="text-base font-medium">{client?.name}</p>
-          {brand ? (
-            <p className="text-sm text-neutral-600">{brand.name}</p>
-          ) : client?.company ? (
-            <p className="text-sm text-neutral-600">{client.company}</p>
+        <div className="mb-6 flex items-start justify-between gap-6">
+          <div>
+            <p className="mb-1 text-xs font-medium uppercase text-neutral-400">Cliente</p>
+            <p className="text-base font-medium">{client?.name}</p>
+            {brand ? (
+              <p className="text-sm text-neutral-600">{brand.name}</p>
+            ) : client?.company ? (
+              <p className="text-sm text-neutral-600">{client.company}</p>
+            ) : null}
+            {client?.document ? <p className="text-sm text-neutral-600">Doc: {client.document}</p> : null}
+            {client?.state_registration ? <p className="text-sm text-neutral-600">IE: {client.state_registration}</p> : null}
+            <p className="text-sm text-neutral-600">
+              {[client?.emails?.[0], client?.phones?.[0] ?? client?.whatsapp].filter(Boolean).join(' · ')}
+            </p>
+            {address ? <p className="text-sm text-neutral-600">{address}</p> : null}
+          </div>
+          {order.purchase_order_number ? (
+            <div className="shrink-0 text-right">
+              <p className="mb-1 text-xs font-medium uppercase text-neutral-400">Ordem de compra</p>
+              <p className="text-base font-medium">{order.purchase_order_number}</p>
+            </div>
           ) : null}
-          {client?.document ? <p className="text-sm text-neutral-600">Doc: {client.document}</p> : null}
-          {client?.state_registration ? <p className="text-sm text-neutral-600">IE: {client.state_registration}</p> : null}
-          <p className="text-sm text-neutral-600">
-            {[client?.emails?.[0], client?.phones?.[0] ?? client?.whatsapp].filter(Boolean).join(' · ')}
-          </p>
-          {address ? <p className="text-sm text-neutral-600">{address}</p> : null}
         </div>
 
         {orderDetails.length > 0 ? (

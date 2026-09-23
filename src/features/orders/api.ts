@@ -134,6 +134,7 @@ export interface OrderPayload {
   shipping_method: string | null
   payment_terms: string | null
   delivery_date: string | null
+  purchase_order_number: string | null
   created_by?: string | null
   assigned_to?: string | null
   brand_id?: string | null

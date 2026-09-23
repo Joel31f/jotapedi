@@ -60,6 +60,7 @@ interface OrderDraft {
   shippingMethod: string
   paymentTerms: string
   deliveryDate: string
+  purchaseOrderNumber: string
 }
 
 function itemTotal(item: LineItem) {
@@ -97,6 +98,7 @@ export function OrderFormDialog({
   const [shippingMethod, setShippingMethod] = useState('')
   const [paymentTerms, setPaymentTerms] = useState('')
   const [deliveryDate, setDeliveryDate] = useState('')
+  const [purchaseOrderNumber, setPurchaseOrderNumber] = useState('')
 
   const createOrder = useCreateOrder()
   const updateOrder = useUpdateOrder()
@@ -158,6 +160,7 @@ export function OrderFormDialog({
       setShippingMethod(draft.shippingMethod)
       setPaymentTerms(draft.paymentTerms)
       setDeliveryDate(draft.deliveryDate)
+      setPurchaseOrderNumber(draft.purchaseOrderNumber)
       setItems(draft.items)
       toast.info('Rascunho recuperado — continue de onde parou')
       return
@@ -185,6 +188,7 @@ export function OrderFormDialog({
       setShippingMethod(order.shipping_method ?? '')
       setPaymentTerms(order.payment_terms ?? '')
       setDeliveryDate(order.delivery_date ?? '')
+      setPurchaseOrderNumber(order.purchase_order_number ?? '')
       setItems(
         order.items.length > 0
           ? order.items.map((i) => ({
@@ -213,6 +217,7 @@ export function OrderFormDialog({
       setShippingMethod('')
       setPaymentTerms('')
       setDeliveryDate('')
+      setPurchaseOrderNumber('')
       setItems([emptyItem()])
       if (defaultClient?.id) prefillFromLastOrder(defaultClient.id)
     }
@@ -239,6 +244,7 @@ export function OrderFormDialog({
         shippingMethod,
         paymentTerms,
         deliveryDate,
+        purchaseOrderNumber,
       })
     } else {
       clearDraft(draftKey)
@@ -261,6 +267,7 @@ export function OrderFormDialog({
     shippingMethod,
     paymentTerms,
     deliveryDate,
+    purchaseOrderNumber,
   ])
 
   const handleOpenChange = (next: boolean) => {
@@ -378,6 +385,7 @@ export function OrderFormDialog({
       shipping_method: shippingMethod.trim() || null,
       payment_terms: paymentTerms.trim() || null,
       delivery_date: deliveryDate || null,
+      purchase_order_number: purchaseOrderNumber.trim() || null,
       ...(order ? {} : { created_by: activeMembership?.id ?? null }),
     }
 
@@ -523,6 +531,15 @@ export function OrderFormDialog({
             <div className="flex min-w-[160px] flex-1 flex-col gap-1.5">
               <Label htmlFor="delivery_date">Previsão de entrega</Label>
               <Input id="delivery_date" type="date" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} />
+            </div>
+            <div className="flex min-w-[200px] flex-1 flex-col gap-1.5">
+              <Label htmlFor="purchase_order_number">Nº da ordem de compra do cliente</Label>
+              <Input
+                id="purchase_order_number"
+                placeholder="Número que o cliente informou"
+                value={purchaseOrderNumber}
+                onChange={(e) => setPurchaseOrderNumber(e.target.value)}
+              />
             </div>
           </div>
 
