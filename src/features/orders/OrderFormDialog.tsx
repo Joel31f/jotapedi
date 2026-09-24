@@ -348,6 +348,8 @@ export function OrderFormDialog({
   }
 
   const askHowToUseNewItem = async (item: LineItem, description: string): Promise<ComboboxOption | null> => {
+    if (!isAdmin) return { id: item.product_id ?? '', label: description }
+
     let base: BaseProduct | null = null
     if (item.product_id) {
       const { data } = await supabase
@@ -660,7 +662,9 @@ export function OrderFormDialog({
                       placeholder="Buscar produto…"
                       search={searchProducts}
                       onCreate={(query) => askHowToUseNewItem(item, query)}
-                      createLabel={(query) => `Usar "${query}" como item novo…`}
+                      createLabel={(query) =>
+                        isAdmin ? `Usar "${query}" como item novo…` : `Usar "${query}" só neste pedido`
+                      }
                       onSelect={(option) => {
                         const [, priceLabel] = (option.sublabel ?? '').split('·')
                         updateItem(item.key, {
