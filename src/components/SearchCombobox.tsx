@@ -28,7 +28,7 @@ export function SearchCombobox({
   placeholder: string
   emptyLabel?: string
   className?: string
-  onCreate?: (query: string) => Promise<ComboboxOption>
+  onCreate?: (query: string) => Promise<ComboboxOption | null>
   createLabel?: (query: string) => string
 }) {
   const [open, setOpen] = useState(false)
@@ -58,9 +58,11 @@ export function SearchCombobox({
     setCreating(true)
     try {
       const option = await onCreate(query.trim())
-      onSelect(option)
-      setOpen(false)
-      setQuery('')
+      if (option) {
+        onSelect(option)
+        setOpen(false)
+        setQuery('')
+      }
     } catch (error) {
       toast.error('Não foi possível criar', { description: error instanceof Error ? error.message : undefined })
     } finally {

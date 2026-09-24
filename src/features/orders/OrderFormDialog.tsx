@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Plus, Printer, Trash2 } from 'lucide-react'
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
@@ -28,6 +28,24 @@ interface LineItem {
   discount_value: string
   net_price: string
   notes: string
+}
+
+interface BaseProduct {
+  sku: string
+  sale_price: number
+  cost_price: number
+  unit: string
+  category: string | null
+  ncm: string | null
+}
+
+type NewProductChoice = 'order_only' | 'same_sku' | 'new_sku'
+
+interface ProductPrompt {
+  item: LineItem
+  description: string
+  base: BaseProduct | null
+  resolve: (option: ComboboxOption | null) => void
 }
 
 function emptyItem(): LineItem {
@@ -117,6 +135,10 @@ export function OrderFormDialog({
   const [paymentTerms, setPaymentTerms] = useState('')
   const [deliveryDate, setDeliveryDate] = useState('')
   const [purchaseOrderNumber, setPurchaseOrderNumber] = useState('')
+  const [productPrompt, setProductPrompt] = useState<ProductPrompt | null>(null)
+  const [productChoice, setProductChoice] = useState<NewProductChoice>('order_only')
+  const [newProductSku, setNewProductSku] = useState('')
+  const [savingProduct, setSavingProduct] = useState(false)
 
   const createOrder = useCreateOrder()
   const updateOrder = useUpdateOrder()
@@ -317,11 +339,8 @@ export function OrderFormDialog({
     return (data ?? []).map((p) => ({ id: p.id, label: p.description, sublabel: `${p.sku} · ${formatCurrency(p.sale_price)}` }))
   }
 
-  const createProductFromDescription = async (item: LineItem, description: string): Promise<ComboboxOption> => {
-    if (!activeWorkspace) throw new Error('Workspace não encontrado')
-
-    let base: { sku: string; sale_price: number; cost_price: number; unit: string; category: string | null; ncm: string | null } | null =
-      null
+  const askHowToUseNewItem = async (item: LineItem, description: string): Promise<ComboboxOption | null> => {
+    let base: BaseProduct | null = null
     if (item.product_id) {
       const { data } = await supabase
         .from('products')
@@ -330,26 +349,59 @@ export function OrderFormDialog({
         .single()
       base = data
     }
+    return new Promise((resolve) => {
+      setProductChoice('order_only')
+      setNewProductSku('')
+      setProductPrompt({ item, description, base, resolve })
+    })
+  }
 
-    const sku = base?.sku || `AUTO-${Date.now().toString(36).toUpperCase()}`
-    const { data, error } = await supabase
-      .from('products')
-      .insert({
-        workspace_id: activeWorkspace.id,
-        sku,
-        description,
-        unit: base?.unit ?? 'UN',
-        sale_price: base?.sale_price ?? toNumber(item.unit_price),
-        cost_price: base?.cost_price ?? 0,
-        category: base?.category ?? null,
-        ncm: base?.ncm ?? null,
-        active: true,
+  const closeProductPrompt = () => {
+    productPrompt?.resolve(null)
+    setProductPrompt(null)
+  }
+
+  const confirmProductPrompt = async () => {
+    if (!productPrompt || !activeWorkspace) return
+    const { item, description, base, resolve } = productPrompt
+
+    if (productChoice === 'order_only') {
+      resolve({ id: item.product_id ?? '', label: description })
+      setProductPrompt(null)
+      return
+    }
+
+    setSavingProduct(true)
+    try {
+      const sku =
+        productChoice === 'same_sku' && base
+          ? base.sku
+          : newProductSku.trim() || `AUTO-${Date.now().toString(36).toUpperCase()}`
+      const { data, error } = await supabase
+        .from('products')
+        .insert({
+          workspace_id: activeWorkspace.id,
+          sku,
+          description,
+          unit: base?.unit ?? 'UN',
+          sale_price: base?.sale_price ?? toNumber(item.unit_price),
+          cost_price: base?.cost_price ?? 0,
+          category: base?.category ?? null,
+          ncm: base?.ncm ?? null,
+          active: true,
+        })
+        .select('id, sku, description, sale_price')
+        .single()
+      if (error) throw new Error(error.message)
+      resolve({ id: data.id, label: data.description, sublabel: `${data.sku} · ${formatCurrency(data.sale_price)}` })
+      setProductPrompt(null)
+    } catch (error) {
+      toast.error('Não foi possível cadastrar o produto', {
+        description: error instanceof Error ? error.message : undefined,
       })
-      .select('id, sku, description, sale_price')
-      .single()
-    if (error) throw new Error(error.message)
-
-    return { id: data.id, label: data.description, sublabel: `${data.sku} · ${formatCurrency(data.sale_price)}` }
+    } finally {
+      setSavingProduct(false)
+    }
   }
 
   const searchTeamMembers = async (query: string): Promise<ComboboxOption[]> => {
@@ -598,12 +650,12 @@ export function OrderFormDialog({
                       selectedLabel={item.description || null}
                       placeholder="Buscar produto…"
                       search={searchProducts}
-                      onCreate={(query) => createProductFromDescription(item, query)}
-                      createLabel={(query) => `Criar produto "${query}"`}
+                      onCreate={(query) => askHowToUseNewItem(item, query)}
+                      createLabel={(query) => `Usar "${query}" como item novo…`}
                       onSelect={(option) => {
                         const [, priceLabel] = (option.sublabel ?? '').split('·')
                         updateItem(item.key, {
-                          product_id: option.id,
+                          product_id: option.id || null,
                           description: option.label,
                           unit_price: priceLabel ? priceLabel.replace(/[^\d,.-]/g, '').replace(',', '.') : item.unit_price,
                         })
@@ -777,6 +829,78 @@ export function OrderFormDialog({
             </Button>
           </DialogFooter>
         </form>
+
+        <Dialog open={!!productPrompt} onOpenChange={(next) => !next && !savingProduct && closeProductPrompt()}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Como usar esse item?</DialogTitle>
+              <DialogDescription>Você editou o item para “{productPrompt?.description}”.</DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col gap-2">
+              {(
+                [
+                  { value: 'order_only', title: 'Só neste pedido', hint: 'Nada é salvo no catálogo de produtos.' },
+                  ...(productPrompt?.base
+                    ? [
+                        {
+                          value: 'same_sku',
+                          title: `Cadastrar como novo produto com o mesmo SKU (${productPrompt.base.sku})`,
+                          hint: 'Fica disponível para os próximos pedidos.',
+                        },
+                      ]
+                    : []),
+                  {
+                    value: 'new_sku',
+                    title: 'Cadastrar como novo produto com outro SKU',
+                    hint: 'Fica disponível para os próximos pedidos.',
+                  },
+                ] as { value: NewProductChoice; title: string; hint: string }[]
+              ).map((option) => (
+                <label
+                  key={option.value}
+                  className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-border p-3 has-[:checked]:border-primary"
+                >
+                  <input
+                    type="radio"
+                    name="new-product-choice"
+                    className="mt-1 accent-[var(--primary)]"
+                    checked={productChoice === option.value}
+                    onChange={() => setProductChoice(option.value)}
+                  />
+                  <span className="flex flex-col">
+                    <span className="text-sm font-medium text-foreground">{option.title}</span>
+                    <span className="text-xs text-muted-foreground">{option.hint}</span>
+                  </span>
+                </label>
+              ))}
+              {productChoice === 'new_sku' ? (
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="new_product_sku">SKU do novo produto</Label>
+                  <Input
+                    id="new_product_sku"
+                    placeholder="Deixe vazio para gerar automaticamente"
+                    value={newProductSku}
+                    onChange={(e) => setNewProductSku(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        confirmProductPrompt()
+                      }
+                    }}
+                  />
+                </div>
+              ) : null}
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" disabled={savingProduct} onClick={closeProductPrompt}>
+                Cancelar
+              </Button>
+              <Button type="button" disabled={savingProduct} onClick={confirmProductPrompt}>
+                {savingProduct ? 'Salvando…' : productChoice === 'order_only' ? 'Usar neste pedido' : 'Cadastrar e usar'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </DialogContent>
     </Dialog>
   )
