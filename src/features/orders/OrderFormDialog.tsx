@@ -27,6 +27,7 @@ interface LineItem {
   discount_type: DiscountType
   discount_value: string
   net_price: string
+  notes: string
 }
 
 function emptyItem(): LineItem {
@@ -39,6 +40,7 @@ function emptyItem(): LineItem {
     discount_type: 'value',
     discount_value: '0',
     net_price: '0',
+    notes: '',
   }
 }
 
@@ -56,8 +58,8 @@ function netUnitPrice(item: Pick<LineItem, 'unit_price' | 'discount_type' | 'dis
   return Math.max(0, price - discount)
 }
 
-function withNetPrice(item: Omit<LineItem, 'net_price'>): LineItem {
-  return { ...item, net_price: String(round2(netUnitPrice(item))) }
+function withNetPrice(item: Omit<LineItem, 'net_price' | 'notes'> & { notes?: string }): LineItem {
+  return { ...item, notes: item.notes ?? '', net_price: String(round2(netUnitPrice(item))) }
 }
 
 interface OrderDraft {
@@ -215,6 +217,7 @@ export function OrderFormDialog({
                 unit_price: String(i.unit_price),
                 discount_type: i.discount_type,
                 discount_value: String(i.discount_value),
+                notes: i.notes ?? '',
               }),
             )
           : [emptyItem()],
@@ -432,6 +435,7 @@ export function OrderFormDialog({
         discount_value: toNumber(item.discount_value),
         total: itemTotal(item),
         position: index,
+        notes: item.notes.trim() || null,
       }))
 
     try {
@@ -661,6 +665,15 @@ export function OrderFormDialog({
                   <Button type="button" size="icon" variant="ghost" onClick={() => removeItem(item.key)}>
                     <Trash2 className="size-4" />
                   </Button>
+                  <div className="flex w-full flex-col gap-1">
+                    <Label className="text-xs text-muted-foreground">Observação do item</Label>
+                    <Input
+                      className="h-9"
+                      placeholder="Ex: medida específica, cor, detalhe de fabricação…"
+                      value={item.notes}
+                      onChange={(e) => updateItem(item.key, { notes: e.target.value })}
+                    />
+                  </div>
                   <p className="w-full text-right text-xs text-muted-foreground">
                     Total do item: <span className="text-foreground">{formatCurrency(itemTotal(item))}</span>
                   </p>

@@ -149,6 +149,7 @@ export interface OrderItemPayload {
   discount_value: number
   total: number
   position: number
+  notes: string | null
 }
 
 async function replaceOrderItems(orderId: string, items: OrderItemPayload[]) {

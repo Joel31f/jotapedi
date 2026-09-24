@@ -209,6 +209,7 @@ export interface Database {
           discount_value: number
           total: number
           position: number
+          notes: string | null
         }
         Insert: Partial<Database['public']['Tables']['order_items']['Row']> & {
           order_id: string

@@ -175,7 +175,10 @@ export function OrderPrintPage() {
               return (
                 <tr key={item.id} className="border-b border-neutral-100">
                   <td className="py-2 pr-4 whitespace-nowrap text-neutral-500">{item.products?.sku ?? '—'}</td>
-                  <td className="py-2 pr-4">{item.description}</td>
+                  <td className="py-2 pr-4">
+                    {item.description}
+                    {item.notes ? <p className="mt-0.5 whitespace-pre-wrap text-xs text-neutral-500">Obs.: {item.notes}</p> : null}
+                  </td>
                   <td className={isProduction ? 'py-2 text-right whitespace-nowrap' : 'py-2 pr-4 text-right whitespace-nowrap'}>
                     {item.quantity}
                   </td>
