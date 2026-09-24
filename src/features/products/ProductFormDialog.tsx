@@ -69,7 +69,6 @@ export function ProductFormDialog({
     const draft = readDraft<ProductFormValues>(draftKey)
     if (draft && (draft.sku.trim() || draft.description.trim())) {
       setForm(draft)
-      toast.info('Rascunho recuperado — continue de onde parou')
       return
     }
     setForm(product ? toFormValues(product) : EMPTY_FORM)

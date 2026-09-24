@@ -157,7 +157,6 @@ export function ClientFormDialog({
     if (draft && draft.form.name.trim()) {
       setForm(draft.form)
       setTagIds(draft.tagIds)
-      toast.info('Rascunho recuperado — continue de onde parou')
       return
     }
     setForm(client ? toFormValues(client) : EMPTY_FORM)

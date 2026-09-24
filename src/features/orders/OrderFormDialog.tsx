@@ -178,7 +178,6 @@ export function OrderFormDialog({
       setDeliveryDate(draft.deliveryDate)
       setPurchaseOrderNumber(draft.purchaseOrderNumber)
       setItems(draft.items.map(withNetPrice))
-      toast.info('Rascunho recuperado — continue de onde parou')
       return
     }
     if (order) {
