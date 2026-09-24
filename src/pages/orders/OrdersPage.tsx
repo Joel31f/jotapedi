@@ -166,7 +166,7 @@ export function OrdersPage() {
         </Button>
       </div>
 
-      <Tabs value={view} onValueChange={(v) => setView(v as 'kanban' | 'lista')} className="flex-1">
+      <Tabs value={view} onValueChange={(v) => setView(v as 'kanban' | 'lista')} className="min-h-0 flex-1">
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <TabsList>
             <TabsTrigger value="kanban">Kanban</TabsTrigger>
@@ -237,14 +237,22 @@ export function OrdersPage() {
           ) : null}
         </div>
 
-        <TabsContent value="kanban" className="flex-1">
+        <TabsContent value="kanban" className="flex min-h-0 flex-1 flex-col">
           <KanbanBoard
             columns={stages.map((s) => ({ id: s.id, title: s.name, color: s.color }))}
             items={kanbanOrders}
             getId={(o) => o.id}
             getColumnId={(o) => o.stage_id}
             emptyLabel="Nenhum pedido neste estágio"
-            onMove={(id, columnId) => updateStage.mutate({ id, stageId: columnId })}
+            onMove={(id, columnId) =>
+              updateStage.mutate(
+                { id, stageId: columnId },
+                {
+                  onError: (error) =>
+                    toast.error('Não foi possível mover o pedido', { description: error.message }),
+                },
+              )
+            }
             renderColumnHeaderExtra={(_columnId, colItems) => (
               <span className="text-xs text-muted-foreground">
                 {formatCurrency(colItems.reduce((sum, o) => sum + o.total, 0))}
@@ -263,8 +271,8 @@ export function OrdersPage() {
           />
         </TabsContent>
 
-        <TabsContent value="lista" className="flex flex-1 flex-col">
-          <div className="flex-1 overflow-auto rounded-lg border border-border">
+        <TabsContent value="lista" className="flex min-h-0 flex-1 flex-col">
+          <div className="flex-1 overflow-auto rounded-lg border border-border [&_[data-slot=table-container]]:overflow-visible">
             <Table>
               <TableHeader>
                 <TableRow>

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Bell, ChevronDown, LogOut, Menu, Plus, Search, Settings, Sun, Moon } from 'lucide-react'
+import { Bell, ChevronDown, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Plus, Search, Settings, Sun, Moon } from 'lucide-react'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
@@ -22,7 +22,15 @@ import { CommandMenu } from '@/components/layout/CommandMenu'
 import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
-export function Topbar({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
+export function Topbar({
+  onOpenMobileNav,
+  sidebarHidden,
+  onToggleSidebar,
+}: {
+  onOpenMobileNav: () => void
+  sidebarHidden: boolean
+  onToggleSidebar: () => void
+}) {
   const { user, signOut } = useAuth()
   const { activeMembership, memberships, switchWorkspace } = useWorkspace()
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications()
@@ -36,6 +44,16 @@ export function Topbar({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
     <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border bg-background px-3 md:gap-3 md:px-4">
       <Button size="icon" variant="ghost" className="md:hidden" onClick={onOpenMobileNav}>
         <Menu className="size-4" />
+      </Button>
+      <Button
+        size="icon"
+        variant="ghost"
+        className="hidden md:inline-flex"
+        onClick={onToggleSidebar}
+        title={sidebarHidden ? 'Mostrar menu lateral' : 'Ocultar menu lateral'}
+        aria-label={sidebarHidden ? 'Mostrar menu lateral' : 'Ocultar menu lateral'}
+      >
+        {sidebarHidden ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
       </Button>
 
       <button

@@ -432,7 +432,7 @@ export function ProductsPage() {
         </div>
       ) : null}
 
-      <div className="flex-1 overflow-auto rounded-lg border border-border">
+      <div className="flex-1 overflow-auto rounded-lg border border-border [&_[data-slot=table-container]]:overflow-visible">
         <Table>
           <TableHeader>
             <TableRow>
