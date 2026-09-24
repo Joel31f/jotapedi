@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Printer } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -44,6 +44,8 @@ function usePrintableOrder(id: string | undefined) {
 
 export function OrderPrintPage() {
   const { id } = useParams<{ id: string }>()
+  const [searchParams] = useSearchParams()
+  const isProduction = searchParams.get('modo') === 'producao'
   const { activeWorkspace } = useWorkspace()
   const { data: order, isLoading, isError, error } = usePrintableOrder(id)
 
@@ -109,6 +111,7 @@ export function OrderPrintPage() {
             <p className="text-sm text-neutral-500">Pedido #{order.id.slice(0, 8).toUpperCase()}</p>
           </div>
           <div className="text-right text-sm text-neutral-500">
+            {isProduction ? <p className="mb-1 font-semibold uppercase text-neutral-900">Via de produção</p> : null}
             <p>Emissão: {formatDateTimeFull(order.created_at)}</p>
             <p>Estágio: {order.pipeline_stages?.name ?? '—'}</p>
           </div>
@@ -154,61 +157,76 @@ export function OrderPrintPage() {
             <tr className="border-b border-neutral-300 text-left text-xs uppercase text-neutral-400">
               <th className="py-2 pr-4">Código</th>
               <th className="py-2 pr-4">Descrição</th>
-              <th className="py-2 pr-4 text-right">Qtd.</th>
-              <th className="py-2 pr-4 text-right">Preço unit.</th>
-              <th className="py-2 pr-4 text-right">Desconto</th>
-              <th className="py-2 text-right">Total</th>
+              <th className={isProduction ? 'py-2 text-right' : 'py-2 pr-4 text-right'}>Qtd.</th>
+              {isProduction ? null : (
+                <>
+                  <th className="py-2 pr-4 text-right">Preço unit.</th>
+                  <th className="py-2 pr-4 text-right">Desconto</th>
+                  <th className="py-2 pr-4 text-right">Preço c/ desc.</th>
+                  <th className="py-2 text-right">Total</th>
+                </>
+              )}
             </tr>
           </thead>
           <tbody>
             {order.items.map((item: any) => {
               const itemDiscount = item.quantity * item.unit_price - item.total
+              const netUnitPrice = item.quantity > 0 ? item.total / item.quantity : item.unit_price
               return (
                 <tr key={item.id} className="border-b border-neutral-100">
                   <td className="py-2 pr-4 whitespace-nowrap text-neutral-500">{item.products?.sku ?? '—'}</td>
                   <td className="py-2 pr-4">{item.description}</td>
-                  <td className="py-2 pr-4 text-right whitespace-nowrap">{item.quantity}</td>
-                  <td className="py-2 pr-4 text-right whitespace-nowrap">{formatCurrency(item.unit_price)}</td>
-                  <td className="py-2 pr-4 text-right whitespace-nowrap">
-                    {itemDiscount > 0 ? `-${formatCurrency(itemDiscount)}` : '—'}
+                  <td className={isProduction ? 'py-2 text-right whitespace-nowrap' : 'py-2 pr-4 text-right whitespace-nowrap'}>
+                    {item.quantity}
                   </td>
-                  <td className="py-2 text-right whitespace-nowrap">{formatCurrency(item.total)}</td>
+                  {isProduction ? null : (
+                    <>
+                      <td className="py-2 pr-4 text-right whitespace-nowrap">{formatCurrency(item.unit_price)}</td>
+                      <td className="py-2 pr-4 text-right whitespace-nowrap">
+                        {itemDiscount > 0 ? `-${formatCurrency(itemDiscount)}` : '—'}
+                      </td>
+                      <td className="py-2 pr-4 text-right whitespace-nowrap">{formatCurrency(netUnitPrice)}</td>
+                      <td className="py-2 text-right whitespace-nowrap">{formatCurrency(item.total)}</td>
+                    </>
+                  )}
                 </tr>
               )
             })}
           </tbody>
         </table>
 
-        <div className="mb-6 flex justify-end">
-          <div className="w-56 text-sm">
-            <div className="flex justify-between py-1">
-              <span className="text-neutral-500">Subtotal</span>
-              <span>{formatCurrency(itemsGrossSubtotal)}</span>
-            </div>
-            {itemDiscountsTotal > 0 ? (
+        {isProduction ? null : (
+          <div className="mb-6 flex justify-end">
+            <div className="w-56 text-sm">
               <div className="flex justify-between py-1">
-                <span className="text-neutral-500">Desconto nos itens</span>
-                <span>-{formatCurrency(itemDiscountsTotal)}</span>
+                <span className="text-neutral-500">Subtotal</span>
+                <span>{formatCurrency(itemsGrossSubtotal)}</span>
               </div>
-            ) : null}
-            <div className="flex justify-between py-1">
-              <span className="text-neutral-500">Desconto global</span>
-              <span>
-                -{order.discount_type === 'percent' ? `${order.discount_value}%` : formatCurrency(order.discount_value)}
-              </span>
-            </div>
-            {order.freight ? (
+              {itemDiscountsTotal > 0 ? (
+                <div className="flex justify-between py-1">
+                  <span className="text-neutral-500">Desconto nos itens</span>
+                  <span>-{formatCurrency(itemDiscountsTotal)}</span>
+                </div>
+              ) : null}
               <div className="flex justify-between py-1">
-                <span className="text-neutral-500">Frete</span>
-                <span>{formatCurrency(order.freight)}</span>
+                <span className="text-neutral-500">Desconto global</span>
+                <span>
+                  -{order.discount_type === 'percent' ? `${order.discount_value}%` : formatCurrency(order.discount_value)}
+                </span>
               </div>
-            ) : null}
-            <div className="flex justify-between border-t border-neutral-300 py-2 text-base font-semibold">
-              <span>Total</span>
-              <span>{formatCurrency(order.total)}</span>
+              {order.freight ? (
+                <div className="flex justify-between py-1">
+                  <span className="text-neutral-500">Frete</span>
+                  <span>{formatCurrency(order.freight)}</span>
+                </div>
+              ) : null}
+              <div className="flex justify-between border-t border-neutral-300 py-2 text-base font-semibold">
+                <span>Total</span>
+                <span>{formatCurrency(order.total)}</span>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {order.notes ? (
           <div className="mb-6">

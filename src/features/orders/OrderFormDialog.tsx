@@ -26,6 +26,7 @@ interface LineItem {
   unit_price: string
   discount_type: DiscountType
   discount_value: string
+  net_price: string
 }
 
 function emptyItem(): LineItem {
@@ -37,11 +38,26 @@ function emptyItem(): LineItem {
     unit_price: '0',
     discount_type: 'value',
     discount_value: '0',
+    net_price: '0',
   }
 }
 
 function toNumber(value: string) {
   return Number(value.replace(',', '.')) || 0
+}
+
+function round2(value: number) {
+  return Math.round(value * 100) / 100
+}
+
+function netUnitPrice(item: Pick<LineItem, 'unit_price' | 'discount_type' | 'discount_value'>) {
+  const price = toNumber(item.unit_price)
+  const discount = item.discount_type === 'percent' ? (price * toNumber(item.discount_value)) / 100 : toNumber(item.discount_value)
+  return Math.max(0, price - discount)
+}
+
+function withNetPrice(item: Omit<LineItem, 'net_price'>): LineItem {
+  return { ...item, net_price: String(round2(netUnitPrice(item))) }
 }
 
 interface OrderDraft {
@@ -161,7 +177,7 @@ export function OrderFormDialog({
       setPaymentTerms(draft.paymentTerms)
       setDeliveryDate(draft.deliveryDate)
       setPurchaseOrderNumber(draft.purchaseOrderNumber)
-      setItems(draft.items)
+      setItems(draft.items.map(withNetPrice))
       toast.info('Rascunho recuperado — continue de onde parou')
       return
     }
@@ -191,15 +207,17 @@ export function OrderFormDialog({
       setPurchaseOrderNumber(order.purchase_order_number ?? '')
       setItems(
         order.items.length > 0
-          ? order.items.map((i) => ({
-              key: i.id,
-              product_id: i.product_id,
-              description: i.description,
-              quantity: String(i.quantity),
-              unit_price: String(i.unit_price),
-              discount_type: i.discount_type,
-              discount_value: String(i.discount_value),
-            }))
+          ? order.items.map((i) =>
+              withNetPrice({
+                key: i.id,
+                product_id: i.product_id,
+                description: i.description,
+                quantity: String(i.quantity),
+                unit_price: String(i.unit_price),
+                discount_type: i.discount_type,
+                discount_value: String(i.discount_value),
+              }),
+            )
           : [emptyItem()],
       )
     } else {
@@ -349,7 +367,22 @@ export function OrderFormDialog({
   }
 
   const updateItem = (key: string, patch: Partial<LineItem>) =>
-    setItems((prev) => prev.map((item) => (item.key === key ? { ...item, ...patch } : item)))
+    setItems((prev) =>
+      prev.map((item) => {
+        if (item.key !== key) return item
+        const next = { ...item, ...patch }
+        if ('net_price' in patch) {
+          next.discount_type = 'value'
+          next.discount_value = String(Math.max(0, round2(toNumber(next.unit_price) - toNumber(next.net_price))))
+        } else if ('unit_price' in patch || 'discount_type' in patch || 'discount_value' in patch) {
+          next.net_price = String(round2(netUnitPrice(next)))
+        }
+        return next
+      }),
+    )
+
+  const refreshNetPrice = (key: string) =>
+    setItems((prev) => prev.map((item) => (item.key === key ? { ...item, net_price: String(round2(netUnitPrice(item))) } : item)))
 
   const removeItem = (key: string) => setItems((prev) => (prev.length > 1 ? prev.filter((item) => item.key !== key) : prev))
 
@@ -616,6 +649,16 @@ export function OrderFormDialog({
                       </SelectContent>
                     </Select>
                   </div>
+                  <div className="flex min-w-[120px] flex-1 flex-col gap-1">
+                    <Label className="text-xs text-muted-foreground">Preço c/ desc.</Label>
+                    <Input
+                      className="h-10"
+                      inputMode="decimal"
+                      value={item.net_price}
+                      onChange={(e) => updateItem(item.key, { net_price: e.target.value })}
+                      onBlur={() => refreshNetPrice(item.key)}
+                    />
+                  </div>
                   <Button type="button" size="icon" variant="ghost" onClick={() => removeItem(item.key)}>
                     <Trash2 className="size-4" />
                   </Button>
@@ -695,15 +738,26 @@ export function OrderFormDialog({
 
           <DialogFooter>
             {order ? (
-              <a
-                href={`/pedidos/${order.id}/imprimir`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={cn(buttonVariants({ variant: 'outline' }), 'gap-1.5')}
-              >
-                <Printer className="size-4" />
-                Imprimir
-              </a>
+              <>
+                <a
+                  href={`/pedidos/${order.id}/imprimir?modo=producao`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cn(buttonVariants({ variant: 'outline' }), 'gap-1.5')}
+                >
+                  <Printer className="size-4" />
+                  Imprimir p/ produção
+                </a>
+                <a
+                  href={`/pedidos/${order.id}/imprimir`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cn(buttonVariants({ variant: 'outline' }), 'gap-1.5')}
+                >
+                  <Printer className="size-4" />
+                  Imprimir
+                </a>
+              </>
             ) : null}
             <Button type="submit" disabled={saving}>
               {saving ? 'Salvando…' : 'Salvar'}
