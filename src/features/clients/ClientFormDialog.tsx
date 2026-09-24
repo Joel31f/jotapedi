@@ -136,13 +136,16 @@ export function ClientFormDialog({
   open,
   onOpenChange,
   client,
+  onCreated,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   client: ClientWithTags | null
+  onCreated?: (id: string) => void
 }) {
   const { activeWorkspace } = useWorkspace()
   const [form, setForm] = useState<ClientFormValues>(EMPTY_FORM)
+  const [createdId, setCreatedId] = useState<string | null>(null)
   const [tagIds, setTagIds] = useState<string[]>([])
   const [cepStatus, setCepStatus] = useState<'idle' | 'loading' | 'error'>('idle')
   const createClient = useCreateClient()
@@ -171,6 +174,10 @@ export function ClientFormDialog({
       clearDraft(draftKey)
     }
   }, [open, draftKey, form, tagIds])
+
+  useEffect(() => {
+    if (!open) setCreatedId(null)
+  }, [open])
 
   const handleOpenChange = (next: boolean) => {
     if (!next) clearDraft(draftKey)
@@ -231,15 +238,17 @@ export function ClientFormDialog({
     }
 
     try {
-      if (client) {
-        await updateClient.mutateAsync({ id: client.id, payload, tagIds })
+      const currentId = client?.id ?? createdId
+      if (currentId) {
+        await updateClient.mutateAsync({ id: currentId, payload, tagIds })
         toast.success('Cliente atualizado')
       } else {
-        await createClient.mutateAsync({ payload, tagIds })
+        const newId = await createClient.mutateAsync({ payload, tagIds })
+        setCreatedId(newId)
+        onCreated?.(newId)
         toast.success('Cliente criado')
       }
       clearDraft(draftKey)
-      onOpenChange(false)
     } catch (error) {
       toast.error('Não foi possível salvar o cliente', {
         description: error instanceof Error ? error.message : undefined,

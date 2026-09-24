@@ -338,6 +338,7 @@ export function OrdersPage() {
       <OrderFormDialog
         open={formOpen}
         onOpenChange={handleFormOpenChange}
+        onCreated={openEditDialog}
         order={editingOrder ?? null}
       />
 

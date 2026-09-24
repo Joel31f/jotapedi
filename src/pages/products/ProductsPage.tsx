@@ -143,6 +143,12 @@ export function ProductsPage() {
     setSearchParams(searchParams, { replace: true })
   }
 
+  const handleProductCreated = (id: string) => {
+    searchParams.delete('new')
+    searchParams.set('edit', id)
+    setSearchParams(searchParams, { replace: true })
+  }
+
   const handleFormOpenChange = (open: boolean) => {
     setFormOpen(open)
     if (!open && (searchParams.get('edit') || searchParams.get('new'))) {
@@ -517,7 +523,12 @@ export function ProductsPage() {
         </div>
       </div>
 
-      <ProductFormDialog open={formOpen} onOpenChange={handleFormOpenChange} product={editingProduct} />
+      <ProductFormDialog
+        open={formOpen}
+        onOpenChange={handleFormOpenChange}
+        product={editingProduct}
+        onCreated={handleProductCreated}
+      />
 
       <ImportDialog
         open={importOpen}

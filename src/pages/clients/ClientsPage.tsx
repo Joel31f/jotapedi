@@ -119,6 +119,12 @@ export function ClientsPage() {
     setSearchParams(searchParams, { replace: true })
   }
 
+  const handleClientCreated = (id: string) => {
+    searchParams.delete('new')
+    searchParams.set('edit', id)
+    setSearchParams(searchParams, { replace: true })
+  }
+
   const handleFormOpenChange = (open: boolean) => {
     setFormOpen(open)
     if (!open && (searchParams.get('edit') || searchParams.get('new'))) {
@@ -415,7 +421,12 @@ export function ClientsPage() {
         </TabsContent>
       </Tabs>
 
-      <ClientFormDialog open={formOpen} onOpenChange={handleFormOpenChange} client={editingClient} />
+      <ClientFormDialog
+        open={formOpen}
+        onOpenChange={handleFormOpenChange}
+        client={editingClient}
+        onCreated={handleClientCreated}
+      />
 
       <ImportDialog
         open={importOpen}

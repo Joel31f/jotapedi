@@ -112,13 +112,17 @@ export function OrderFormDialog({
   onOpenChange,
   order,
   defaultClient,
+  onCreated,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   order: OrderWithItems | null
   defaultClient?: { id: string; label: string } | null
+  onCreated?: (id: string) => void
 }) {
   const { activeWorkspace, activeMembership, isAdmin, stages } = useWorkspace()
+  const [createdId, setCreatedId] = useState<string | null>(null)
+  const currentOrderId = order?.id ?? createdId
   const [clientId, setClientId] = useState<string | null>(null)
   const [clientLabel, setClientLabel] = useState<string | null>(null)
   const [stageId, setStageId] = useState<string>('')
@@ -312,6 +316,10 @@ export function OrderFormDialog({
     purchaseOrderNumber,
   ])
 
+  useEffect(() => {
+    if (!open) setCreatedId(null)
+  }, [open])
+
   const handleOpenChange = (next: boolean) => {
     if (!next) clearDraft(draftKey)
     onOpenChange(next)
@@ -474,7 +482,7 @@ export function OrderFormDialog({
       payment_terms: paymentTerms.trim() || null,
       delivery_date: deliveryDate || null,
       purchase_order_number: purchaseOrderNumber.trim() || null,
-      ...(order ? {} : { created_by: activeMembership?.id ?? null }),
+      ...(currentOrderId ? {} : { created_by: activeMembership?.id ?? null }),
     }
 
     const itemsPayload: OrderItemPayload[] = items
@@ -492,15 +500,16 @@ export function OrderFormDialog({
       }))
 
     try {
-      if (order) {
-        await updateOrder.mutateAsync({ id: order.id, payload: orderPayload, items: itemsPayload })
+      if (currentOrderId) {
+        await updateOrder.mutateAsync({ id: currentOrderId, payload: orderPayload, items: itemsPayload })
         toast.success('Pedido atualizado')
       } else {
-        await createOrder.mutateAsync({ payload: orderPayload, items: itemsPayload })
+        const newId = await createOrder.mutateAsync({ payload: orderPayload, items: itemsPayload })
+        setCreatedId(newId)
+        onCreated?.(newId)
         toast.success('Pedido criado')
       }
       clearDraft(draftKey)
-      onOpenChange(false)
     } catch (error) {
       toast.error('Não foi possível salvar o pedido', {
         description: error instanceof Error ? error.message : undefined,
@@ -802,10 +811,10 @@ export function OrderFormDialog({
           ) : null}
 
           <DialogFooter>
-            {order ? (
+            {currentOrderId ? (
               <>
                 <a
-                  href={`/pedidos/${order.id}/imprimir?modo=producao`}
+                  href={`/pedidos/${currentOrderId}/imprimir?modo=producao`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className={cn(buttonVariants({ variant: 'outline' }), 'gap-1.5')}
@@ -814,7 +823,7 @@ export function OrderFormDialog({
                   Imprimir p/ produção
                 </a>
                 <a
-                  href={`/pedidos/${order.id}/imprimir`}
+                  href={`/pedidos/${currentOrderId}/imprimir`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className={cn(buttonVariants({ variant: 'outline' }), 'gap-1.5')}

@@ -119,10 +119,13 @@ export function useCreateProduct() {
 
   return useMutation({
     mutationFn: async (payload: Omit<ProductInsert, 'workspace_id'>) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('products')
         .insert({ ...payload, workspace_id: activeWorkspace!.id })
+        .select('id')
+        .single()
       if (error) throw new Error(friendlyError(error))
+      return data.id as string
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] })
@@ -140,8 +143,9 @@ export function useUpdateProduct() {
       if (error) throw new Error(friendlyError(error))
       if (!count) throw new Error('Produto não encontrado ou sem permissão para editar nesta área de trabalho.')
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['products'] })
+      queryClient.invalidateQueries({ queryKey: ['product', variables.id] })
       queryClient.invalidateQueries({ queryKey: ['product-categories'] })
     },
   })

@@ -51,13 +51,16 @@ export function ProductFormDialog({
   open,
   onOpenChange,
   product,
+  onCreated,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   product: Product | null
+  onCreated?: (id: string) => void
 }) {
   const { activeWorkspace } = useWorkspace()
   const [form, setForm] = useState<ProductFormValues>(EMPTY_FORM)
+  const [createdId, setCreatedId] = useState<string | null>(null)
   const createProduct = useCreateProduct()
   const updateProduct = useUpdateProduct()
   const saving = createProduct.isPending || updateProduct.isPending
@@ -83,6 +86,10 @@ export function ProductFormDialog({
     }
   }, [open, draftKey, form])
 
+  useEffect(() => {
+    if (!open) setCreatedId(null)
+  }, [open])
+
   const handleOpenChange = (next: boolean) => {
     if (!next) clearDraft(draftKey)
     onOpenChange(next)
@@ -106,15 +113,17 @@ export function ProductFormDialog({
     }
 
     try {
-      if (product) {
-        await updateProduct.mutateAsync({ id: product.id, payload })
+      const currentId = product?.id ?? createdId
+      if (currentId) {
+        await updateProduct.mutateAsync({ id: currentId, payload })
         toast.success('Produto atualizado')
       } else {
-        await createProduct.mutateAsync(payload)
+        const newId = await createProduct.mutateAsync(payload)
+        setCreatedId(newId)
+        onCreated?.(newId)
         toast.success('Produto criado')
       }
       clearDraft(draftKey)
-      onOpenChange(false)
     } catch (error) {
       toast.error('Não foi possível salvar o produto', {
         description: error instanceof Error ? error.message : undefined,
