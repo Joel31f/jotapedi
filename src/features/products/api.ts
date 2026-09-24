@@ -18,6 +18,42 @@ export interface ProductFilters {
 
 export const PRODUCTS_PAGE_SIZE = 20
 
+function applyProductFilters(query: any, filters: ProductFilters) {
+  const search = filters.search.replace(/[,%]/g, '').trim()
+  if (search) query = query.or(`sku.ilike.%${search}%,description.ilike.%${search}%`)
+  if (filters.category) query = query.eq('category', filters.category)
+  if (filters.status === 'active') query = query.eq('active', true)
+  if (filters.status === 'inactive') query = query.eq('active', false)
+  if (filters.priceStatus === 'no_price') query = query.eq('sale_price', 0)
+  if (filters.priceStatus === 'with_price') query = query.gt('sale_price', 0)
+  if (filters.minPrice) query = query.gte('sale_price', Number(filters.minPrice.replace(',', '.')) || 0)
+  if (filters.maxPrice) query = query.lte('sale_price', Number(filters.maxPrice.replace(',', '.')) || 0)
+  return query
+}
+
+export function useFetchAllProducts() {
+  const { activeWorkspace } = useWorkspace()
+
+  return async (filters: ProductFilters): Promise<Product[]> => {
+    const PAGE = 1000
+    const all: Product[] = []
+    for (let from = 0; ; from += PAGE) {
+      const query = applyProductFilters(
+        supabase.from('products').select('*').eq('workspace_id', activeWorkspace!.id),
+        filters,
+      )
+        .order('description', { ascending: true })
+        .order('id', { ascending: true })
+        .range(from, from + PAGE - 1)
+      const { data, error } = await query
+      if (error) throw new Error(error.message)
+      all.push(...((data ?? []) as Product[]))
+      if (!data || data.length < PAGE) break
+    }
+    return all
+  }
+}
+
 export function useProductsQuery(filters: ProductFilters, page: number) {
   const { activeWorkspace } = useWorkspace()
 
@@ -25,20 +61,10 @@ export function useProductsQuery(filters: ProductFilters, page: number) {
     queryKey: ['products', activeWorkspace?.id, filters, page],
     enabled: !!activeWorkspace,
     queryFn: async () => {
-      let query = supabase
-        .from('products')
-        .select('*', { count: 'exact' })
-        .eq('workspace_id', activeWorkspace!.id)
-
-      const search = filters.search.replace(/[,%]/g, '').trim()
-      if (search) query = query.or(`sku.ilike.%${search}%,description.ilike.%${search}%`)
-      if (filters.category) query = query.eq('category', filters.category)
-      if (filters.status === 'active') query = query.eq('active', true)
-      if (filters.status === 'inactive') query = query.eq('active', false)
-      if (filters.priceStatus === 'no_price') query = query.eq('sale_price', 0)
-      if (filters.priceStatus === 'with_price') query = query.gt('sale_price', 0)
-      if (filters.minPrice) query = query.gte('sale_price', Number(filters.minPrice.replace(',', '.')) || 0)
-      if (filters.maxPrice) query = query.lte('sale_price', Number(filters.maxPrice.replace(',', '.')) || 0)
+      let query = applyProductFilters(
+        supabase.from('products').select('*', { count: 'exact' }).eq('workspace_id', activeWorkspace!.id),
+        filters,
+      )
 
       query = query
         .order('description', { ascending: true })
@@ -46,7 +72,7 @@ export function useProductsQuery(filters: ProductFilters, page: number) {
 
       const { data, error, count } = await query
       if (error) throw error
-      return { rows: data ?? [], count: count ?? 0 }
+      return { rows: (data ?? []) as Product[], count: count ?? 0 }
     },
   })
 }
@@ -211,27 +237,72 @@ export function useBulkUpdateProducts() {
   })
 }
 
-export function useBulkUpdateProductsBySku() {
+export interface SheetUpdateRow {
+  id?: string
+  sku?: string
+  payload: ProductUpdate
+}
+
+export interface SheetUpdateResult {
+  updated: number
+  notFound: string[]
+  ambiguous: string[]
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+export function useBulkUpdateProductsFromSheet() {
   const { activeWorkspace } = useWorkspace()
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (rows: { sku: string; payload: ProductUpdate }[]) => {
+    mutationFn: async (rows: SheetUpdateRow[]): Promise<SheetUpdateResult> => {
+      const workspaceId = activeWorkspace!.id
+      const notFound: string[] = []
+      const ambiguous = new Set<string>()
       let updated = 0
-      const CONCURRENCY = 20
-      for (let i = 0; i < rows.length; i += CONCURRENCY) {
-        const batch = rows.slice(i, i + CONCURRENCY)
-        const results = await Promise.all(
-          batch.map(({ sku, payload }) =>
-            supabase.from('products').update(payload, { count: 'exact' }).eq('workspace_id', activeWorkspace!.id).eq('sku', sku),
-          ),
-        )
-        for (const { error, count } of results) {
-          if (error) throw new Error(friendlyError(error))
-          updated += count ?? 0
+
+      // Linhas sem ID são localizadas pelo SKU; se o SKU existir em mais de um produto, a linha é ignorada.
+      const idsBySku = new Map<string, string[]>()
+      const skus = [...new Set(rows.filter((r) => !r.id && r.sku).map((r) => r.sku!))]
+      for (let i = 0; i < skus.length; i += 25) {
+        const { data, error } = await supabase
+          .from('products')
+          .select('id, sku')
+          .eq('workspace_id', workspaceId)
+          .in('sku', skus.slice(i, i + 25))
+        if (error) throw new Error(friendlyError(error))
+        for (const product of data ?? []) idsBySku.set(product.sku, [...(idsBySku.get(product.sku) ?? []), product.id])
+      }
+
+      const jobs: { label: string; id: string; payload: ProductUpdate }[] = []
+      for (const row of rows) {
+        if (row.id) {
+          if (UUID_RE.test(row.id)) jobs.push({ label: row.id, id: row.id, payload: row.payload })
+          else notFound.push(row.id)
+        } else if (row.sku) {
+          const ids = idsBySku.get(row.sku) ?? []
+          if (ids.length === 0) notFound.push(row.sku)
+          else if (ids.length > 1) ambiguous.add(row.sku)
+          else jobs.push({ label: row.sku, id: ids[0], payload: row.payload })
         }
       }
-      return updated
+
+      const CONCURRENCY = 20
+      for (let i = 0; i < jobs.length; i += CONCURRENCY) {
+        const batch = jobs.slice(i, i + CONCURRENCY)
+        const results = await Promise.all(
+          batch.map(({ id, payload }) =>
+            supabase.from('products').update(payload, { count: 'exact' }).eq('workspace_id', workspaceId).eq('id', id),
+          ),
+        )
+        results.forEach(({ error, count }, idx) => {
+          if (error) throw new Error(friendlyError(error))
+          if (count) updated += count
+          else notFound.push(batch[idx].label)
+        })
+      }
+      return { updated, notFound, ambiguous: [...ambiguous] }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] })

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
-import { Plus, Search, Upload, FileSpreadsheet, Pencil, Trash2, X } from 'lucide-react'
+import { Download, Plus, Search, Upload, FileSpreadsheet, Pencil, Trash2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -16,7 +16,8 @@ import {
   useBulkDeleteProducts,
   useBulkDeleteProductsByFilter,
   useBulkInsertProducts,
-  useBulkUpdateProductsBySku,
+  useBulkUpdateProductsFromSheet,
+  useFetchAllProducts,
   useProductCategoriesQuery,
   useProductQuery,
   useProductsQuery,
@@ -25,12 +26,14 @@ import {
   type Product,
   type ProductFilters,
   type ProductUpdate,
+  type SheetUpdateRow,
 } from '@/features/products/api'
 import { ProductFormDialog } from '@/features/products/ProductFormDialog'
 import { ProductBulkEditDialog } from '@/features/products/ProductBulkEditDialog'
 import { ImportDialog } from '@/components/import/ImportDialog'
 import { ConfirmDeleteDialog } from '@/components/ConfirmDeleteDialog'
-import type { MappingTarget } from '@/lib/spreadsheet'
+import { downloadXlsx, type MappingTarget } from '@/lib/spreadsheet'
+import { useWorkspace } from '@/providers/WorkspaceProvider'
 
 const IMPORT_TARGETS: MappingTarget[] = [
   { key: 'sku', label: 'SKU', required: true, aliases: ['codigo', 'código'] },
@@ -44,7 +47,8 @@ const IMPORT_TARGETS: MappingTarget[] = [
 ]
 
 const UPDATE_TARGETS: MappingTarget[] = [
-  { key: 'sku', label: 'SKU (usado para encontrar o produto)', required: true, aliases: ['codigo', 'código'] },
+  { key: 'id', label: 'ID interno (não altere)', aliases: ['id'] },
+  { key: 'sku', label: 'SKU', aliases: ['codigo', 'código'] },
   { key: 'description', label: 'Descrição', aliases: ['nome', 'produto'] },
   { key: 'unit', label: 'Unidade', aliases: ['un', 'unidade de medida'] },
   { key: 'sale_price', label: 'Preço de venda', aliases: ['preco', 'preço', 'valor'] },
@@ -53,6 +57,32 @@ const UPDATE_TARGETS: MappingTarget[] = [
   { key: 'min_stock', label: 'Estoque mínimo', aliases: ['estoque minimo', 'estoque'] },
   { key: 'ncm', label: 'NCM', aliases: [] },
 ]
+
+const EXPORT_COLUMNS: { key: string; value: (product: Product) => string | number }[] = [
+  { key: 'id', value: (p) => p.id },
+  { key: 'sku', value: (p) => p.sku },
+  { key: 'description', value: (p) => p.description },
+  { key: 'unit', value: (p) => p.unit },
+  { key: 'sale_price', value: (p) => p.sale_price },
+  { key: 'cost_price', value: (p) => p.cost_price },
+  { key: 'category', value: (p) => p.category ?? '' },
+  { key: 'min_stock', value: (p) => p.min_stock ?? '' },
+  { key: 'ncm', value: (p) => p.ncm ?? '' },
+]
+
+function parseDecimal(value: string | undefined): number | null {
+  if (!value) return null
+  let text = value.trim().replace(/\s/g, '').replace(/^R\$/i, '')
+  if (text.includes(',')) text = text.replace(/\./g, '').replace(',', '.')
+  const number = Number(text)
+  return text !== '' && Number.isFinite(number) ? number : null
+}
+
+function summarize(label: string, values: string[]) {
+  if (values.length === 0) return null
+  const sample = values.slice(0, 3).join(', ')
+  return `${values.length} ${label} (ex.: ${sample}${values.length > 3 ? '…' : ''})`
+}
 
 export function ProductsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -135,7 +165,25 @@ export function ProductsPage() {
   const updateProduct = useUpdateProduct()
   const deleteProduct = useDeleteProduct()
   const bulkInsert = useBulkInsertProducts()
-  const bulkUpdateBySku = useBulkUpdateProductsBySku()
+  const bulkUpdateFromSheet = useBulkUpdateProductsFromSheet()
+  const fetchAllProducts = useFetchAllProducts()
+  const { isAdmin } = useWorkspace()
+  const [exporting, setExporting] = useState(false)
+
+  const handleExport = async () => {
+    setExporting(true)
+    try {
+      const products = await fetchAllProducts(filters)
+      const headers = EXPORT_COLUMNS.map((column) => UPDATE_TARGETS.find((t) => t.key === column.key)!.label)
+      const dataRows = products.map((product) => EXPORT_COLUMNS.map((column) => column.value(product)))
+      downloadXlsx(headers, dataRows, `produtos_${new Date().toISOString().slice(0, 10)}.xlsx`, 'Produtos')
+      toast.success(`${products.length} produto(s) exportado(s)`)
+    } catch (error) {
+      toast.error('Não foi possível exportar', { description: error instanceof Error ? error.message : undefined })
+    } finally {
+      setExporting(false)
+    }
+  }
   const bulkDeleteByIds = useBulkDeleteProducts()
   const bulkDeleteByFilter = useBulkDeleteProductsByFilter()
 
@@ -223,10 +271,18 @@ export function ProductsPage() {
           <p className="text-sm text-muted-foreground">{total} produto(s) cadastrado(s)</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setUpdateOpen(true)}>
-            <FileSpreadsheet className="size-4" />
-            Atualizar por planilha
-          </Button>
+          {isAdmin ? (
+            <>
+              <Button variant="outline" disabled={exporting} onClick={handleExport}>
+                <Download className="size-4" />
+                {exporting ? 'Exportando…' : 'Exportar'}
+              </Button>
+              <Button variant="outline" onClick={() => setUpdateOpen(true)}>
+                <FileSpreadsheet className="size-4" />
+                Atualizar por planilha
+              </Button>
+            </>
+          ) : null}
           <Button variant="outline" onClick={() => setImportOpen(true)}>
             <Upload className="size-4" />
             Importar
@@ -491,28 +547,39 @@ export function ProductsPage() {
         open={updateOpen}
         onOpenChange={setUpdateOpen}
         title="Atualizar produtos por planilha"
-        description="Isso não cria produtos novos — atualiza os produtos que já existem, encontrando cada um pelo SKU. Só os campos que você mapear abaixo são alterados."
+        description="Não cria produtos novos — atualiza os que já existem. Se a planilha tiver a coluna de ID interno (baixe pelo botão Exportar), cada linha atualiza exatamente um produto e o SKU também pode ser trocado. Sem o ID, o produto é encontrado pelo SKU, e linhas cujo SKU exista em mais de um produto são ignoradas. Células vazias não alteram nada."
         templateFilename="modelo_atualizar_produtos.csv"
         targets={UPDATE_TARGETS}
+        requireAnyOf={{ keys: ['id', 'sku'], message: 'Associe pelo menos a coluna do ID interno ou a do SKU.' }}
         actionLabel="Atualizar"
         actionLabelIng="Atualizando"
         successVerb="atualizado(s)"
         onImport={async (importedRows) => {
-          const rows = importedRows
-            .filter((row) => row.sku)
+          const sheetRows: SheetUpdateRow[] = importedRows
             .map((row) => {
+              const id = row.id?.trim() || undefined
+              const sku = row.sku?.trim() || undefined
               const payload: ProductUpdate = {}
-              if ('description' in row && row.description) payload.description = row.description
-              if ('unit' in row && row.unit) payload.unit = row.unit
-              if ('sale_price' in row) payload.sale_price = Number(row.sale_price?.replace(',', '.')) || 0
-              if ('cost_price' in row) payload.cost_price = Number(row.cost_price?.replace(',', '.')) || 0
-              if ('category' in row) payload.category = row.category || null
-              if ('min_stock' in row) payload.min_stock = row.min_stock ? Number(row.min_stock.replace(',', '.')) : null
-              if ('ncm' in row) payload.ncm = row.ncm || null
-              return { sku: row.sku, payload }
+              if (row.description) payload.description = row.description
+              if (row.unit) payload.unit = row.unit
+              const salePrice = parseDecimal(row.sale_price)
+              if (salePrice !== null) payload.sale_price = salePrice
+              const costPrice = parseDecimal(row.cost_price)
+              if (costPrice !== null) payload.cost_price = costPrice
+              const minStock = parseDecimal(row.min_stock)
+              if (minStock !== null) payload.min_stock = minStock
+              if (row.category) payload.category = row.category
+              if (row.ncm) payload.ncm = row.ncm
+              if (id && sku) payload.sku = sku
+              return { id, sku, payload }
             })
-            .filter((r) => Object.keys(r.payload).length > 0)
-          return bulkUpdateBySku.mutateAsync(rows)
+            .filter((r) => (r.id || r.sku) && Object.keys(r.payload).length > 0)
+          const result = await bulkUpdateFromSheet.mutateAsync(sheetRows)
+          const notes = [
+            summarize('não encontrado(s)', result.notFound),
+            summarize('ignorado(s) por SKU repetido (use o ID interno)', result.ambiguous),
+          ].filter((note): note is string => !!note)
+          return { count: result.updated, notes }
         }}
       />
 

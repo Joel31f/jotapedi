@@ -16,6 +16,11 @@ import {
 
 type Step = 'select' | 'map' | 'preview'
 
+export interface ImportResult {
+  count: number
+  notes?: string[]
+}
+
 export function ImportDialog({
   open,
   onOpenChange,
@@ -24,6 +29,7 @@ export function ImportDialog({
   templateFilename,
   targets,
   onImport,
+  requireAnyOf,
   actionLabel = 'Importar',
   actionLabelIng = 'Importando',
   successVerb = 'importado(s)',
@@ -34,7 +40,8 @@ export function ImportDialog({
   description?: string
   templateFilename: string
   targets: MappingTarget[]
-  onImport: (rows: Record<string, string>[]) => Promise<number>
+  onImport: (rows: Record<string, string>[]) => Promise<number | ImportResult>
+  requireAnyOf?: { keys: string[]; message: string }
   actionLabel?: string
   actionLabelIng?: string
   successVerb?: string
@@ -74,13 +81,22 @@ export function ImportDialog({
   }
 
   const missingRequired = targets.filter((t) => t.required && !mapping[t.key])
+  const missingAnyOf = !!requireAnyOf && !requireAnyOf.keys.some((key) => mapping[key])
 
   const handleImport = async () => {
     setImporting(true)
     try {
       const mappedRows = buildMappedRows(rows, headers, mapping)
-      const count = await onImport(mappedRows)
-      toast.success(`${count} registro(s) ${successVerb} com sucesso`)
+      const result = await onImport(mappedRows)
+      const count = typeof result === 'number' ? result : result.count
+      const notes = typeof result === 'number' ? [] : (result.notes ?? [])
+      if (notes.length === 0) {
+        toast.success(`${count} registro(s) ${successVerb} com sucesso`)
+      } else if (count === 0) {
+        toast.warning(`Nenhum registro ${successVerb}`, { description: notes.join(' · '), duration: 15000 })
+      } else {
+        toast.success(`${count} registro(s) ${successVerb}`, { description: notes.join(' · '), duration: 15000 })
+      }
       handleOpenChange(false)
     } catch (error) {
       toast.error('Erro ao importar', { description: error instanceof Error ? error.message : undefined })
@@ -163,11 +179,12 @@ export function ImportDialog({
                 </div>
               ))}
             </div>
+            {missingAnyOf ? <p className="text-sm text-destructive">{requireAnyOf?.message}</p> : null}
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setStep('select')}>
                 Voltar
               </Button>
-              <Button type="button" disabled={missingRequired.length > 0} onClick={() => setStep('preview')}>
+              <Button type="button" disabled={missingRequired.length > 0 || missingAnyOf} onClick={() => setStep('preview')}>
                 Continuar
               </Button>
             </DialogFooter>

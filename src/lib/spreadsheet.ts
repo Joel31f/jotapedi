@@ -29,6 +29,16 @@ export function downloadCsvTemplate(headers: string[], filename: string) {
   URL.revokeObjectURL(url)
 }
 
+export function downloadXlsx(headers: string[], rows: (string | number)[][], filename: string, sheetName = 'Planilha') {
+  const sheet = XLSX.utils.aoa_to_sheet([headers, ...rows])
+  sheet['!cols'] = headers.map((header, i) => ({
+    wch: Math.min(60, Math.max(header.length, ...rows.slice(0, 200).map((row) => String(row[i] ?? '').length)) + 2),
+  }))
+  const workbook = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(workbook, sheet, sheetName)
+  XLSX.writeFile(workbook, filename)
+}
+
 export interface MappingTarget {
   key: string
   label: string

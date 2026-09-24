@@ -320,17 +320,18 @@ export function OrderFormDialog({
   const createProductFromDescription = async (item: LineItem, description: string): Promise<ComboboxOption> => {
     if (!activeWorkspace) throw new Error('Workspace não encontrado')
 
-    let base: { sale_price: number; cost_price: number; unit: string; category: string | null; ncm: string | null } | null = null
+    let base: { sku: string; sale_price: number; cost_price: number; unit: string; category: string | null; ncm: string | null } | null =
+      null
     if (item.product_id) {
       const { data } = await supabase
         .from('products')
-        .select('sale_price, cost_price, unit, category, ncm')
+        .select('sku, sale_price, cost_price, unit, category, ncm')
         .eq('id', item.product_id)
         .single()
       base = data
     }
 
-    const sku = `AUTO-${Date.now().toString(36).toUpperCase()}`
+    const sku = base?.sku || `AUTO-${Date.now().toString(36).toUpperCase()}`
     const { data, error } = await supabase
       .from('products')
       .insert({
