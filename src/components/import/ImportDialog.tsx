@@ -109,7 +109,7 @@ export function ImportDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
@@ -146,7 +146,7 @@ export function ImportDialog({
         )}
 
         {step === 'map' && (
-          <div className="flex flex-col gap-3">
+          <div className="flex min-w-0 flex-col gap-3">
             <p className="text-sm text-muted-foreground">
               {rows.length} linha(s) encontrada(s). Associe cada campo à coluna correspondente no arquivo.
             </p>
@@ -192,7 +192,7 @@ export function ImportDialog({
         )}
 
         {step === 'preview' && (
-          <div className="flex flex-col gap-3">
+          <div className="flex min-w-0 flex-col gap-3">
             <p className="text-sm text-muted-foreground">
               Confira uma amostra dos dados que serão importados ({rows.length} linha(s) no total).
             </p>
