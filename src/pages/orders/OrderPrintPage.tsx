@@ -88,8 +88,9 @@ export function OrderPrintPage() {
 
   return (
     <div className="min-h-svh bg-white text-neutral-900">
-      <div className="mx-auto max-w-3xl p-8">
-        <div className="mb-6 flex items-center justify-between print:hidden">
+      <style>{`@page { size: A4; margin: 8mm; }`}</style>
+      <div className="mx-auto max-w-4xl px-6 py-4 text-[12px] leading-snug print:max-w-none print:p-0">
+        <div className="mb-3 flex items-center justify-between print:hidden">
           <button
             onClick={() => window.print()}
             className="flex items-center gap-2 rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700"
@@ -99,71 +100,79 @@ export function OrderPrintPage() {
           </button>
         </div>
 
-        <div className="mb-8 flex items-start justify-between border-b border-neutral-200 pb-6">
-          <div>
+        <div className="mb-2 flex items-center justify-between gap-4 border-b border-neutral-300 pb-2">
+          <div className="flex items-center gap-3">
             {brand?.logo_url ? (
-              <img src={brand.logo_url} alt={brand.name} className="mb-1 h-24 w-auto object-contain" />
-            ) : brand ? (
-              <h1 className="text-xl font-semibold">{brand.name}</h1>
+              <img src={brand.logo_url} alt={brand.name} className="h-12 w-auto object-contain" />
             ) : (
-              <h1 className="text-xl font-semibold">{activeWorkspace?.name}</h1>
+              <h1 className="text-base font-semibold">{brand?.name ?? activeWorkspace?.name}</h1>
             )}
-            <p className="text-sm text-neutral-500">Pedido #{order.id.slice(0, 8).toUpperCase()}</p>
+            <p className="text-sm font-semibold text-neutral-700">Pedido #{order.id.slice(0, 8).toUpperCase()}</p>
           </div>
-          <div className="text-right text-sm text-neutral-500">
-            {isProduction ? <p className="mb-1 font-semibold uppercase text-neutral-900">Via de produção</p> : null}
+          <div className="text-right text-[11px] text-neutral-500">
+            {isProduction ? <p className="font-semibold uppercase text-neutral-900">Via de produção</p> : null}
             <p>Emissão: {formatDateTimeFull(order.created_at)}</p>
             <p>Estágio: {order.pipeline_stages?.name ?? '—'}</p>
           </div>
         </div>
 
-        <div className="mb-6 flex items-start justify-between gap-6">
-          <div>
-            <p className="mb-1 text-xs font-medium uppercase text-neutral-400">Cliente</p>
-            <p className="text-base font-medium">{client?.name}</p>
-            {brand ? (
-              <p className="text-sm text-neutral-600">{brand.name}</p>
-            ) : client?.company ? (
-              <p className="text-sm text-neutral-600">{client.company}</p>
-            ) : null}
-            {client?.document ? <p className="text-sm text-neutral-600">Doc: {client.document}</p> : null}
-            {client?.state_registration ? <p className="text-sm text-neutral-600">IE: {client.state_registration}</p> : null}
-            <p className="text-sm text-neutral-600">
-              {[client?.emails?.[0], client?.phones?.[0] ?? client?.whatsapp].filter(Boolean).join(' · ')}
+        <div className="mb-2 flex items-start justify-between gap-6">
+          <div className="min-w-0 space-y-px">
+            <p>
+              <span className="mr-1 text-[10px] font-medium uppercase text-neutral-400">Cliente</span>
+              <span className="text-[13px] font-semibold">{client?.name}</span>
+              {brand?.name ?? client?.company ? (
+                <span className="text-neutral-600"> · {brand?.name ?? client?.company}</span>
+              ) : null}
             </p>
-            {address ? <p className="text-sm text-neutral-600">{address}</p> : null}
+            {client?.document || client?.state_registration ? (
+              <p className="text-neutral-600">
+                {[
+                  client?.document ? `Doc: ${client.document}` : null,
+                  client?.state_registration ? `IE: ${client.state_registration}` : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </p>
+            ) : null}
+            {client?.emails?.[0] || client?.phones?.[0] || client?.whatsapp ? (
+              <p className="text-neutral-600">
+                {[client?.emails?.[0], client?.phones?.[0] ?? client?.whatsapp].filter(Boolean).join(' · ')}
+              </p>
+            ) : null}
+            {address ? <p className="text-neutral-600">{address}</p> : null}
           </div>
           {order.purchase_order_number ? (
             <div className="shrink-0 text-right">
-              <p className="mb-1 text-xs font-medium uppercase text-neutral-400">Ordem de compra</p>
-              <p className="text-base font-medium">{order.purchase_order_number}</p>
+              <p className="text-[10px] font-medium uppercase text-neutral-400">Ordem de compra</p>
+              <p className="text-[13px] font-semibold">{order.purchase_order_number}</p>
             </div>
           ) : null}
         </div>
 
         {orderDetails.length > 0 ? (
-          <div className="mb-6 grid grid-cols-2 gap-x-6 gap-y-2 border-y border-neutral-200 py-3 text-sm">
+          <div className="mb-2 grid grid-cols-3 gap-x-4 gap-y-0.5 border-y border-neutral-300 py-1.5 text-[11px]">
             {orderDetails.map((detail) => (
               <p key={detail.label} className="text-neutral-700">
-                <span className="text-xs font-medium uppercase text-neutral-400">{detail.label}: </span>
+                <span className="text-[10px] font-medium uppercase text-neutral-400">{detail.label}: </span>
                 {detail.value}
               </p>
             ))}
           </div>
         ) : null}
 
-        <table className="mb-6 w-full border-collapse text-sm">
+        <table className="mb-2 w-full border-collapse text-[11px]">
           <thead>
-            <tr className="border-b border-neutral-300 text-left text-xs uppercase text-neutral-400">
-              <th className="py-2 pr-4">Código</th>
-              <th className="py-2 pr-4">Descrição</th>
-              <th className={isProduction ? 'py-2 text-right' : 'py-2 pr-4 text-right'}>Qtd.</th>
+            <tr className="border-b border-neutral-400 text-left text-[10px] uppercase text-neutral-500">
+              <th className="py-1 pr-3">Código</th>
+              <th className="py-1 pr-3">Descrição</th>
+              <th className={isProduction ? 'py-1 text-right' : 'py-1 pr-3 text-right'}>Qtd.</th>
               {isProduction ? null : (
                 <>
-                  <th className="py-2 pr-4 text-right">Preço unit.</th>
-                  <th className="py-2 pr-4 text-right">Desconto</th>
-                  <th className="py-2 pr-4 text-right">Preço c/ desc.</th>
-                  <th className="py-2 text-right">Total</th>
+                  <th className="py-1 pr-3 text-right">Unit.</th>
+                  <th className="py-1 pr-3 text-right">Desc.</th>
+                  <th className="py-1 pr-3 text-right">Unit. c/ desc.</th>
+                  <th className="py-1 text-right">Total</th>
                 </>
               )}
             </tr>
@@ -173,23 +182,27 @@ export function OrderPrintPage() {
               const itemDiscount = item.quantity * item.unit_price - item.total
               const netUnitPrice = item.quantity > 0 ? item.total / item.quantity : item.unit_price
               return (
-                <tr key={item.id} className="border-b border-neutral-100">
-                  <td className="py-2 pr-4 whitespace-nowrap text-neutral-500">{item.products?.sku ?? '—'}</td>
-                  <td className="py-2 pr-4">
+                <tr key={item.id} className="break-inside-avoid border-b border-neutral-200 align-top">
+                  <td className="py-[3px] pr-3 whitespace-nowrap text-neutral-500">{item.products?.sku ?? '—'}</td>
+                  <td className="py-[3px] pr-3">
                     {item.description}
-                    {item.notes ? <p className="mt-0.5 whitespace-pre-wrap text-xs text-neutral-500">Obs.: {item.notes}</p> : null}
+                    {item.notes ? (
+                      <span className="block whitespace-pre-wrap text-[10px] leading-tight text-neutral-500">
+                        Obs.: {item.notes}
+                      </span>
+                    ) : null}
                   </td>
-                  <td className={isProduction ? 'py-2 text-right whitespace-nowrap' : 'py-2 pr-4 text-right whitespace-nowrap'}>
+                  <td className={isProduction ? 'py-[3px] text-right whitespace-nowrap' : 'py-[3px] pr-3 text-right whitespace-nowrap'}>
                     {item.quantity}
                   </td>
                   {isProduction ? null : (
                     <>
-                      <td className="py-2 pr-4 text-right whitespace-nowrap">{formatCurrency(item.unit_price)}</td>
-                      <td className="py-2 pr-4 text-right whitespace-nowrap">
+                      <td className="py-[3px] pr-3 text-right whitespace-nowrap">{formatCurrency(item.unit_price)}</td>
+                      <td className="py-[3px] pr-3 text-right whitespace-nowrap">
                         {itemDiscount > 0 ? `-${formatCurrency(itemDiscount)}` : '—'}
                       </td>
-                      <td className="py-2 pr-4 text-right whitespace-nowrap">{formatCurrency(netUnitPrice)}</td>
-                      <td className="py-2 text-right whitespace-nowrap">{formatCurrency(item.total)}</td>
+                      <td className="py-[3px] pr-3 text-right whitespace-nowrap">{formatCurrency(netUnitPrice)}</td>
+                      <td className="py-[3px] text-right whitespace-nowrap font-medium">{formatCurrency(item.total)}</td>
                     </>
                   )}
                 </tr>
@@ -199,31 +212,33 @@ export function OrderPrintPage() {
         </table>
 
         {isProduction ? null : (
-          <div className="mb-6 flex justify-end">
-            <div className="w-56 text-sm">
-              <div className="flex justify-between py-1">
+          <div className="mb-2 flex break-inside-avoid justify-end">
+            <div className="w-52 text-[11px]">
+              <div className="flex justify-between py-px">
                 <span className="text-neutral-500">Subtotal</span>
                 <span>{formatCurrency(itemsGrossSubtotal)}</span>
               </div>
               {itemDiscountsTotal > 0 ? (
-                <div className="flex justify-between py-1">
+                <div className="flex justify-between py-px">
                   <span className="text-neutral-500">Desconto nos itens</span>
                   <span>-{formatCurrency(itemDiscountsTotal)}</span>
                 </div>
               ) : null}
-              <div className="flex justify-between py-1">
-                <span className="text-neutral-500">Desconto global</span>
-                <span>
-                  -{order.discount_type === 'percent' ? `${order.discount_value}%` : formatCurrency(order.discount_value)}
-                </span>
-              </div>
+              {Number(order.discount_value) > 0 ? (
+                <div className="flex justify-between py-px">
+                  <span className="text-neutral-500">Desconto global</span>
+                  <span>
+                    -{order.discount_type === 'percent' ? `${order.discount_value}%` : formatCurrency(order.discount_value)}
+                  </span>
+                </div>
+              ) : null}
               {order.freight ? (
-                <div className="flex justify-between py-1">
+                <div className="flex justify-between py-px">
                   <span className="text-neutral-500">Frete</span>
                   <span>{formatCurrency(order.freight)}</span>
                 </div>
               ) : null}
-              <div className="flex justify-between border-t border-neutral-300 py-2 text-base font-semibold">
+              <div className="mt-0.5 flex justify-between border-t border-neutral-400 pt-1 text-sm font-semibold">
                 <span>Total</span>
                 <span>{formatCurrency(order.total)}</span>
               </div>
@@ -232,13 +247,13 @@ export function OrderPrintPage() {
         )}
 
         {order.notes ? (
-          <div className="mb-6">
-            <p className="mb-1 text-xs font-medium uppercase text-neutral-400">Observações</p>
-            <p className="whitespace-pre-wrap text-sm text-neutral-700">{order.notes}</p>
+          <div className="mb-2 break-inside-avoid">
+            <p className="text-[10px] font-medium uppercase text-neutral-400">Observações</p>
+            <p className="whitespace-pre-wrap text-[11px] text-neutral-700">{order.notes}</p>
           </div>
         ) : null}
 
-        <p className="text-center text-xs text-neutral-400">Gerado em {formatDateTime(new Date().toISOString())}</p>
+        <p className="text-center text-[9px] text-neutral-400">Gerado em {formatDateTime(new Date().toISOString())}</p>
       </div>
     </div>
   )
