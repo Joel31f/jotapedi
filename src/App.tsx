@@ -12,6 +12,8 @@ import { SignupPage } from '@/pages/auth/SignupPage'
 import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage'
 import { ResetPasswordPage } from '@/pages/auth/ResetPasswordPage'
 import { CreateWorkspacePage } from '@/pages/onboarding/CreateWorkspacePage'
+import { HelpIndexPage } from '@/pages/help/HelpIndexPage'
+import { HelpArticlePage } from '@/pages/help/HelpArticlePage'
 
 import { DashboardPage } from '@/pages/dashboard/DashboardPage'
 import { OrdersPage } from '@/pages/orders/OrdersPage'
@@ -51,6 +53,8 @@ function App() {
                 }
               />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/ajuda" element={<HelpIndexPage />} />
+              <Route path="/ajuda/:slug" element={<HelpArticlePage />} />
               <Route
                 path="/reset-password"
                 element={
