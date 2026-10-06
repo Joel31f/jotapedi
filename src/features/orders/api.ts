@@ -13,7 +13,7 @@ export interface OrderWithRelations extends Order {
 }
 
 export interface OrderWithItems extends OrderWithRelations {
-  items: OrderItem[]
+  items: (OrderItem & { products?: { sku: string } | null })[]
 }
 
 export interface OrderFilters {
@@ -111,12 +111,12 @@ export function useOrderQuery(id: string | undefined) {
 
       const { data: items, error: itemsError } = await supabase
         .from('order_items')
-        .select('*')
+        .select('*, products(sku)')
         .eq('order_id', id!)
         .order('position', { ascending: true })
       if (itemsError) throw itemsError
 
-      return { ...mapOrder(order), items: items ?? [] } as OrderWithItems
+      return { ...mapOrder(order), items: items ?? [] } as unknown as OrderWithItems
     },
   })
 }

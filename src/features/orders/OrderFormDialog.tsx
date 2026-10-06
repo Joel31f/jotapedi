@@ -28,6 +28,7 @@ interface LineItem {
   discount_value: string
   net_price: string
   notes: string
+  sku: string
 }
 
 interface BaseProduct {
@@ -59,6 +60,7 @@ function emptyItem(): LineItem {
     discount_value: '0',
     net_price: '0',
     notes: '',
+    sku: '',
   }
 }
 
@@ -76,8 +78,8 @@ function netUnitPrice(item: Pick<LineItem, 'unit_price' | 'discount_type' | 'dis
   return Math.max(0, price - discount)
 }
 
-function withNetPrice(item: Omit<LineItem, 'net_price' | 'notes'> & { notes?: string }): LineItem {
-  return { ...item, notes: item.notes ?? '', net_price: String(round2(netUnitPrice(item))) }
+function withNetPrice(item: Omit<LineItem, 'net_price' | 'notes' | 'sku'> & { notes?: string; sku?: string }): LineItem {
+  return { ...item, notes: item.notes ?? '', sku: item.sku ?? '', net_price: String(round2(netUnitPrice(item))) }
 }
 
 interface OrderDraft {
@@ -244,6 +246,7 @@ export function OrderFormDialog({
                 discount_type: i.discount_type,
                 discount_value: String(i.discount_value),
                 notes: i.notes ?? '',
+                sku: i.products?.sku ?? '',
               }),
             )
           : [emptyItem()],
@@ -666,14 +669,20 @@ export function OrderFormDialog({
                         isAdmin ? `Usar "${query}" como item novo…` : `Usar "${query}" só neste pedido`
                       }
                       onSelect={(option) => {
-                        const [, priceLabel] = (option.sublabel ?? '').split('·')
+                        const [skuLabel, priceLabel] = (option.sublabel ?? '').split('·')
                         updateItem(item.key, {
                           product_id: option.id || null,
+                          sku: option.sublabel ? skuLabel.trim() : item.sku,
                           description: option.label,
                           unit_price: priceLabel ? priceLabel.replace(/[^\d,.-]/g, '').replace(',', '.') : item.unit_price,
                         })
                       }}
                     />
+                    {item.sku ? (
+                      <p className="text-xs text-muted-foreground">
+                        Código: <span className="font-mono text-foreground">{item.sku}</span>
+                      </p>
+                    ) : null}
                   </div>
                   <div className="flex min-w-[100px] flex-1 flex-col gap-1">
                     <Label className="text-xs text-muted-foreground">Qtd.</Label>
