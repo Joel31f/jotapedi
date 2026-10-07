@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Plus, Printer, Trash2 } from 'lucide-react'
+import { MessageSquarePlus, Plus, Printer, Trash2 } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -48,6 +48,8 @@ interface ProductPrompt {
   base: BaseProduct | null
   resolve: (option: ComboboxOption | null) => void
 }
+
+const ITEM_GRID = 'md:grid-cols-[minmax(0,1fr)_64px_92px_80px_72px_96px_92px_68px]'
 
 function emptyItem(): LineItem {
   return {
@@ -142,6 +144,7 @@ export function OrderFormDialog({
   const [deliveryDate, setDeliveryDate] = useState('')
   const [purchaseOrderNumber, setPurchaseOrderNumber] = useState('')
   const [productPrompt, setProductPrompt] = useState<ProductPrompt | null>(null)
+  const [openNotes, setOpenNotes] = useState<Set<string>>(new Set())
   const [productChoice, setProductChoice] = useState<NewProductChoice>('order_only')
   const [newProductSku, setNewProductSku] = useState('')
   const [savingProduct, setSavingProduct] = useState(false)
@@ -655,105 +658,138 @@ export function OrderFormDialog({
               </Button>
             </div>
 
-            <div className="flex flex-col gap-3">
-              {items.map((item) => (
-                <div key={item.key} className="flex flex-wrap items-end gap-3 rounded-lg border border-border p-3">
-                  <div className="flex min-w-[240px] flex-[3] flex-col gap-1">
-                    <Label className="text-xs text-muted-foreground">Produto / descrição</Label>
-                    <SearchCombobox
-                      selectedLabel={item.description || null}
-                      placeholder="Buscar produto…"
-                      search={searchProducts}
-                      onCreate={(query) => askHowToUseNewItem(item, query)}
-                      createLabel={(query) =>
-                        isAdmin ? `Usar "${query}" como item novo…` : `Usar "${query}" só neste pedido`
-                      }
-                      onSelect={(option) => {
-                        const [skuLabel, priceLabel] = (option.sublabel ?? '').split('·')
-                        updateItem(item.key, {
-                          product_id: option.id || null,
-                          sku: option.sublabel ? skuLabel.trim() : item.sku,
-                          description: option.label,
-                          unit_price: priceLabel ? priceLabel.replace(/[^\d,.-]/g, '').replace(',', '.') : item.unit_price,
-                        })
-                      }}
-                    />
-                    {item.sku ? (
-                      <p className="text-xs text-muted-foreground">
-                        Código: <span className="font-mono text-foreground">{item.sku}</span>
-                      </p>
+            <div className="flex flex-col gap-3 md:gap-0 md:rounded-lg md:border md:border-border md:px-3 md:py-1">
+              <div className={`hidden gap-2 border-b border-border py-1.5 text-xs text-muted-foreground md:grid ${ITEM_GRID}`}>
+                <span>Produto / descrição</span>
+                <span>Qtd.</span>
+                <span>Preço unit.</span>
+                <span>Desc.</span>
+                <span>Tipo</span>
+                <span>Preço c/ desc.</span>
+                <span className="text-right">Total</span>
+                <span />
+              </div>
+              {items.map((item) => {
+                const notesVisible = !!item.notes || openNotes.has(item.key)
+                return (
+                  <div
+                    key={item.key}
+                    className={`flex flex-wrap items-end gap-3 max-md:rounded-lg max-md:border max-md:border-border max-md:p-3 md:grid md:items-start md:gap-x-2 md:gap-y-1 md:border-b md:border-border md:py-1.5 md:last:border-b-0 ${ITEM_GRID}`}
+                  >
+                    <div className="flex w-full min-w-0 flex-col gap-1 md:w-auto">
+                      <Label className="text-xs text-muted-foreground md:hidden">Produto / descrição</Label>
+                      <SearchCombobox
+                        selectedLabel={item.description || null}
+                        placeholder="Buscar produto…"
+                        search={searchProducts}
+                        onCreate={(query) => askHowToUseNewItem(item, query)}
+                        createLabel={(query) =>
+                          isAdmin ? `Usar "${query}" como item novo…` : `Usar "${query}" só neste pedido`
+                        }
+                        onSelect={(option) => {
+                          const [skuLabel, priceLabel] = (option.sublabel ?? '').split('·')
+                          updateItem(item.key, {
+                            product_id: option.id || null,
+                            sku: option.sublabel ? skuLabel.trim() : item.sku,
+                            description: option.label,
+                            unit_price: priceLabel ? priceLabel.replace(/[^\d,.-]/g, '').replace(',', '.') : item.unit_price,
+                          })
+                        }}
+                      />
+                      {item.sku ? (
+                        <p className="truncate text-xs text-muted-foreground">
+                          Código: <span className="font-mono text-foreground">{item.sku}</span>
+                        </p>
+                      ) : null}
+                    </div>
+                    <div className="flex min-w-[100px] flex-1 flex-col gap-1 md:min-w-0">
+                      <Label className="text-xs text-muted-foreground md:hidden">Qtd.</Label>
+                      <Input
+                        className="h-9"
+                        inputMode="decimal"
+                        value={item.quantity}
+                        onChange={(e) => updateItem(item.key, { quantity: e.target.value })}
+                      />
+                    </div>
+                    <div className="flex min-w-[100px] flex-1 flex-col gap-1 md:min-w-0">
+                      <Label className="text-xs text-muted-foreground md:hidden">Preço unit.</Label>
+                      <Input
+                        className="h-9"
+                        inputMode="decimal"
+                        value={item.unit_price}
+                        onChange={(e) => updateItem(item.key, { unit_price: e.target.value })}
+                      />
+                    </div>
+                    <div className="flex min-w-[100px] flex-1 flex-col gap-1 md:min-w-0">
+                      <Label className="text-xs text-muted-foreground md:hidden">Desc.</Label>
+                      <Input
+                        className="h-9"
+                        inputMode="decimal"
+                        value={item.discount_value}
+                        onChange={(e) => updateItem(item.key, { discount_value: e.target.value })}
+                      />
+                    </div>
+                    <div className="flex min-w-[80px] flex-1 flex-col gap-1 md:min-w-0">
+                      <Label className="text-xs text-muted-foreground md:hidden">Tipo</Label>
+                      <Select
+                        value={item.discount_type}
+                        onValueChange={(value) => updateItem(item.key, { discount_type: value as DiscountType })}
+                        items={[{ value: 'value', label: 'R$' }, { value: 'percent', label: '%' }]}
+                      >
+                        <SelectTrigger className="h-9 w-full px-2 text-sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="value">R$</SelectItem>
+                          <SelectItem value="percent">%</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex min-w-[100px] flex-1 flex-col gap-1 md:min-w-0">
+                      <Label className="text-xs text-muted-foreground md:hidden">Preço c/ desc.</Label>
+                      <Input
+                        className="h-9"
+                        inputMode="decimal"
+                        value={item.net_price}
+                        onChange={(e) => updateItem(item.key, { net_price: e.target.value })}
+                        onBlur={() => refreshNetPrice(item.key)}
+                      />
+                    </div>
+                    <p className="w-full text-right text-sm font-medium text-foreground md:w-auto md:pt-2">
+                      <span className="text-xs font-normal text-muted-foreground md:hidden">Total do item: </span>
+                      {formatCurrency(itemTotal(item))}
+                    </p>
+                    <div className="flex items-center justify-end gap-0.5 md:pt-0.5">
+                      <Button
+                        type="button"
+                        size="icon-sm"
+                        variant="ghost"
+                        title={notesVisible ? 'Observação do item' : 'Adicionar observação ao item'}
+                        aria-label="Adicionar observação ao item"
+                        className={item.notes ? 'text-primary' : 'text-muted-foreground'}
+                        onClick={() => setOpenNotes((prev) => new Set(prev).add(item.key))}
+                      >
+                        <MessageSquarePlus className="size-4" />
+                      </Button>
+                      <Button type="button" size="icon-sm" variant="ghost" title="Remover item" onClick={() => removeItem(item.key)}>
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
+                    {notesVisible ? (
+                      <div className="w-full md:col-span-full">
+                        <Input
+                          className="h-8 text-xs"
+                          placeholder="Observação do item: medida específica, cor, detalhe de fabricação…"
+                          aria-label="Observação do item"
+                          autoFocus={openNotes.has(item.key) && !item.notes}
+                          value={item.notes}
+                          onChange={(e) => updateItem(item.key, { notes: e.target.value })}
+                        />
+                      </div>
                     ) : null}
                   </div>
-                  <div className="flex min-w-[100px] flex-1 flex-col gap-1">
-                    <Label className="text-xs text-muted-foreground">Qtd.</Label>
-                    <Input
-                      className="h-10"
-                      inputMode="decimal"
-                      value={item.quantity}
-                      onChange={(e) => updateItem(item.key, { quantity: e.target.value })}
-                    />
-                  </div>
-                  <div className="flex min-w-[120px] flex-1 flex-col gap-1">
-                    <Label className="text-xs text-muted-foreground">Preço unit.</Label>
-                    <Input
-                      className="h-10"
-                      inputMode="decimal"
-                      value={item.unit_price}
-                      onChange={(e) => updateItem(item.key, { unit_price: e.target.value })}
-                    />
-                  </div>
-                  <div className="flex min-w-[120px] flex-1 flex-col gap-1">
-                    <Label className="text-xs text-muted-foreground">Desc. item</Label>
-                    <Input
-                      className="h-10"
-                      inputMode="decimal"
-                      value={item.discount_value}
-                      onChange={(e) => updateItem(item.key, { discount_value: e.target.value })}
-                    />
-                  </div>
-                  <div className="flex min-w-[100px] flex-1 flex-col gap-1">
-                    <Label className="text-xs text-muted-foreground">Tipo</Label>
-                    <Select
-                      value={item.discount_type}
-                      onValueChange={(value) => updateItem(item.key, { discount_type: value as DiscountType })}
-                      items={[{ value: 'value', label: 'R$' }, { value: 'percent', label: '%' }]}
-                    >
-                      <SelectTrigger className="h-10 w-full px-2 text-sm">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="value">R$</SelectItem>
-                        <SelectItem value="percent">%</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex min-w-[120px] flex-1 flex-col gap-1">
-                    <Label className="text-xs text-muted-foreground">Preço c/ desc.</Label>
-                    <Input
-                      className="h-10"
-                      inputMode="decimal"
-                      value={item.net_price}
-                      onChange={(e) => updateItem(item.key, { net_price: e.target.value })}
-                      onBlur={() => refreshNetPrice(item.key)}
-                    />
-                  </div>
-                  <Button type="button" size="icon" variant="ghost" onClick={() => removeItem(item.key)}>
-                    <Trash2 className="size-4" />
-                  </Button>
-                  <div className="flex w-full flex-col gap-1">
-                    <Label className="text-xs text-muted-foreground">Observação do item</Label>
-                    <Input
-                      className="h-9"
-                      placeholder="Ex: medida específica, cor, detalhe de fabricação…"
-                      value={item.notes}
-                      onChange={(e) => updateItem(item.key, { notes: e.target.value })}
-                    />
-                  </div>
-                  <p className="w-full text-right text-xs text-muted-foreground">
-                    Total do item: <span className="text-foreground">{formatCurrency(itemTotal(item))}</span>
-                  </p>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
 
