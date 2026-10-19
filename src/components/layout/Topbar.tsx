@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Bell, ChevronDown, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Plus, Search, Settings, Sun, Moon } from 'lucide-react'
+import { Bell, ChevronDown, CircleHelp, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Plus, Search, Settings, Sun, Moon } from 'lucide-react'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
@@ -143,6 +143,10 @@ export function Topbar({
           <DropdownMenuItem onClick={() => navigate('/configuracoes')}>
             <Settings className="size-4" />
             Configurações
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => window.open('/ajuda', '_blank', 'noopener,noreferrer')}>
+            <CircleHelp className="size-4" />
+            Central de Ajuda
           </DropdownMenuItem>
           <DropdownMenuItem onClick={toggleTheme}>
             {theme === 'dark' ? <Sun className="size-4" /> : <Moon className="size-4" />}
