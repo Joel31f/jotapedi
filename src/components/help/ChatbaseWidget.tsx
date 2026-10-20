@@ -13,7 +13,7 @@ declare global {
 }
 
 // Mesmo código de incorporação fornecido pelo Chatbase, adaptado para React.
-// Fica ativo em todo o sistema, exceto na tela de impressão do pedido (o balão sairia no papel/PDF).
+// Fica ativo em todo o sistema, exceto na tela de impressão do pedido.
 function initChatbase() {
   if (!window.chatbase || (window.chatbase as ChatbaseFn)('getState') !== 'initialized') {
     const stub: ChatbaseFn = (...args: unknown[]) => {
@@ -41,21 +41,28 @@ function initChatbase() {
   else window.addEventListener('load', load, { once: true })
 }
 
+const HIDE_STYLE_ID = 'chatbase-hide-style'
+const HIDE_CSS =
+  '#chatbase-bubble-button, #chatbase-bubble-window, #chatbase-message-bubbles { display: none !important; }'
+
 export function ChatbaseWidget() {
   const { pathname } = useLocation()
-  const enabled = !(pathname.startsWith('/pedidos/') && pathname.replace(/\/$/, '').endsWith('/imprimir'))
+  const hidden = pathname.startsWith('/pedidos/') && pathname.replace(/\/$/, '').endsWith('/imprimir')
 
+  // O script do Chatbase é carregado uma única vez e fica na página.
   useEffect(() => {
-    if (!enabled) return
     initChatbase()
-    return () => {
-      // Ao entrar numa tela onde o balão não deve aparecer, remove tudo.
-      document.getElementById(SCRIPT_ELEMENT_ID)?.remove()
-      document.getElementById('chatbase-bubble-button')?.remove()
-      document.getElementById('chatbase-bubble-window')?.remove()
-      delete window.chatbase
-    }
-  }, [enabled])
+  }, [])
+
+  // Na tela de impressão do pedido o balão fica escondido (senão sairia no papel/PDF).
+  useEffect(() => {
+    if (!hidden) return
+    const style = document.createElement('style')
+    style.id = HIDE_STYLE_ID
+    style.textContent = HIDE_CSS
+    document.head.appendChild(style)
+    return () => style.remove()
+  }, [hidden])
 
   return null
 }
