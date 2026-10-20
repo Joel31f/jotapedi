@@ -77,19 +77,25 @@ export function useOrdersQuery(filters: OrderFilters, page: number) {
   })
 }
 
-export function useOrdersKanbanQuery(filters: OrderFilters) {
+export const KANBAN_RECENT_DAYS = 30
+
+export function useOrdersKanbanQuery(filters: OrderFilters, recentOnly = true) {
   const { activeWorkspace } = useWorkspace()
+  const applyRecent = recentOnly && !filters.dateFrom && !filters.dateTo
 
   return useQuery({
-    queryKey: ['orders-kanban', activeWorkspace?.id, filters],
+    queryKey: ['orders-kanban', activeWorkspace?.id, filters, applyRecent],
     enabled: !!activeWorkspace,
     queryFn: async () => {
       let query = supabase
         .from('orders')
-        .select('*, clients(id, name, company), pipeline_stages(id, name, color)')
+        .select('id, workspace_id, client_id, stage_id, total, created_at, updated_at, clients(id, name, company), pipeline_stages(id, name, color)')
         .eq('workspace_id', activeWorkspace!.id)
 
       query = applyOrderFilters(query, filters)
+      if (applyRecent) {
+        query = query.gte('updated_at', new Date(Date.now() - KANBAN_RECENT_DAYS * 24 * 60 * 60 * 1000).toISOString())
+      }
       const { data, error } = await query.order('created_at', { ascending: false }).limit(300)
       if (error) throw error
       return (data ?? []).map(mapOrder)

@@ -16,6 +16,7 @@ import { supabase } from '@/lib/supabase'
 import { useWorkspace } from '@/providers/WorkspaceProvider'
 import {
   EMPTY_ORDER_FILTERS,
+  KANBAN_RECENT_DAYS,
   ORDERS_PAGE_SIZE,
   useDeleteOrder,
   useOrderQuery,
@@ -85,7 +86,9 @@ export function OrdersPage() {
 
   const { data: editingOrder } = useOrderQuery(editingOrderId ?? undefined)
   const { data, isLoading } = useOrdersQuery(filters, page)
-  const { data: kanbanOrders = [] } = useOrdersKanbanQuery(filters)
+  const [kanbanRecentOnly, setKanbanRecentOnly] = useState(true)
+  const { data: kanbanOrders = [] } = useOrdersKanbanQuery(filters, kanbanRecentOnly)
+  const kanbanLimitedByDays = kanbanRecentOnly && !filters.dateFrom && !filters.dateTo
   const deleteOrder = useDeleteOrder()
   const updateStage = useUpdateOrderStage()
 
@@ -238,6 +241,22 @@ export function OrdersPage() {
         </div>
 
         <TabsContent value="kanban" className="flex min-h-0 flex-1 flex-col">
+          {!filters.dateFrom && !filters.dateTo ? (
+            <div className="flex flex-wrap items-center gap-2 px-1 text-xs text-muted-foreground">
+              <span>
+                {kanbanLimitedByDays
+                  ? `Mostrando pedidos com atividade nos últimos ${KANBAN_RECENT_DAYS} dias. Os anteriores estão na aba Lista, no histórico do cliente e nos relatórios.`
+                  : 'Mostrando os 300 pedidos mais recentes, de qualquer data.'}
+              </span>
+              <button
+                type="button"
+                className="font-medium text-primary underline underline-offset-2"
+                onClick={() => setKanbanRecentOnly((prev) => !prev)}
+              >
+                {kanbanLimitedByDays ? 'Ver todos' : `Só os últimos ${KANBAN_RECENT_DAYS} dias`}
+              </button>
+            </div>
+          ) : null}
           <KanbanBoard
             columns={stages.map((s) => ({ id: s.id, title: s.name, color: s.color }))}
             items={kanbanOrders}
