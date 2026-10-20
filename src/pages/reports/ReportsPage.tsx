@@ -29,7 +29,7 @@ const PERIOD_OPTIONS: { value: PeriodPreset; label: string }[] = [
 ]
 
 export function ReportsPage() {
-  const { activeWorkspace } = useWorkspace()
+  const { activeWorkspace, isAdmin } = useWorkspace()
   const [preset, setPreset] = useState<PeriodPreset>('month')
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
@@ -84,10 +84,12 @@ export function ReportsPage() {
               <Input type="date" className="w-36" value={customTo} onChange={(e) => setCustomTo(e.target.value)} />
             </>
           ) : null}
-          <Button variant="outline" onClick={handleExport} disabled={exporting}>
-            <Download className="size-4" />
-            {exporting ? 'Exportando…' : 'Exportar XLSX'}
-          </Button>
+          {isAdmin ? (
+            <Button variant="outline" onClick={handleExport} disabled={exporting}>
+              <Download className="size-4" />
+              {exporting ? 'Exportando…' : 'Exportar tudo (XLSX)'}
+            </Button>
+          ) : null}
         </div>
       </div>
 
