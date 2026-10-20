@@ -82,26 +82,24 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     loadMemberships()
   }, [loadMemberships])
 
-  useEffect(() => {
-    if (memberships.length === 0) return
-    const stillValid = memberships.some((m) => m.workspace.id === activeWorkspaceId)
-    if (!stillValid) {
-      setActiveWorkspaceId(memberships[0].workspace.id)
-    }
-  }, [memberships, activeWorkspaceId])
+  // A área ativa é derivada na hora: a escolhida, ou a primeira se não houver escolha válida.
+  // Antes isso era resolvido num efeito, e a primeira tela renderizava sem área ativa,
+  // o que mandava usuários novos para "Sem permissão".
+  const effectiveWorkspaceId =
+    memberships.find((m) => m.workspace.id === activeWorkspaceId)?.workspace.id ?? memberships[0]?.workspace.id ?? null
 
   const refreshStages = useCallback(async () => {
-    if (!activeWorkspaceId) {
+    if (!effectiveWorkspaceId) {
       setStages([])
       return
     }
     const { data } = await supabase
       .from('pipeline_stages')
       .select('*')
-      .eq('workspace_id', activeWorkspaceId)
+      .eq('workspace_id', effectiveWorkspaceId)
       .order('position', { ascending: true })
     setStages(data ?? [])
-  }, [activeWorkspaceId])
+  }, [effectiveWorkspaceId])
 
   useEffect(() => {
     refreshStages()
@@ -126,7 +124,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     return { error: null }
   }
 
-  const activeMembershipEntry = memberships.find((m) => m.workspace.id === activeWorkspaceId) ?? null
+  const activeMembershipEntry = memberships.find((m) => m.workspace.id === effectiveWorkspaceId) ?? null
 
   return (
     <WorkspaceContext.Provider
