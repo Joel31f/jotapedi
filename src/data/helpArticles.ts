@@ -52,12 +52,12 @@ export const HELP_ARTICLES: HelpArticle[] = [
     blocks: [
       {
         type: 'p',
-        text: 'Cada item do pedido tem os campos Preço unit., Desc. item, Tipo (R$ ou %) e Preço c/ desc. Eles conversam entre si, então você pode preencher pelo caminho que for mais rápido.',
+        text: 'Cada item do pedido tem os campos Preço unit., Desc., Tipo (R$ ou %) e Preço c/ desc. Eles conversam entre si, então você pode preencher pelo caminho que for mais rápido.',
       },
       {
         type: 'steps',
         items: [
-          'Caminho 1 — pelo desconto: preencha o Preço unit., depois o valor em Desc. item, e escolha se é em R$ (valor fixo por unidade) ou % (percentual). O campo Preço c/ desc. se atualiza sozinho.',
+          'Caminho 1 — pelo desconto: preencha o Preço unit., depois o valor em Desc., e escolha se é em R$ (valor fixo por unidade) ou % (percentual). O campo Preço c/ desc. se atualiza sozinho.',
           'Caminho 2 — pelo preço final: se você já sabe quanto vai cobrar por unidade depois do desconto, digite direto no campo Preço c/ desc. O sistema calcula o desconto em R$ sozinho.',
         ],
       },
@@ -82,7 +82,8 @@ export const HELP_ARTICLES: HelpArticle[] = [
       {
         type: 'steps',
         items: [
-          'No item do pedido, logo abaixo dos campos de preço, preencha o campo "Observação do item".',
+          'Na linha do item, no fim à direita, clique no ícone de balãozinho com um "+" (ao passar o mouse aparece "Adicionar observação ao item").',
+          'Vai abrir um campo logo abaixo da linha do item. Digite a medida, a cor ou o detalhe de fabricação.',
           'Salve o pedido normalmente.',
         ],
       },
@@ -144,9 +145,14 @@ export const HELP_ARTICLES: HelpArticle[] = [
         items: [
           'Pelo quadro: em Pedidos, na aba Kanban, clique e arraste o cartão do pedido para a coluna da etapa desejada (Orçamento, Confirmado, Pago, Enviado, etc).',
           'Pelo formulário: abra o pedido e mude o campo Estágio, depois clique em Salvar.',
+          'Se não achar um pedido antigo no quadro, clique em "Ver todos" acima das colunas. Por padrão o quadro mostra só os pedidos com movimento nos últimos 30 dias (para ficar rápido); a aba Lista sempre mostra todos.',
         ],
       },
       { type: 'image', src: '/ajuda/mover-pedido-kanban-1.webp', alt: 'Quadro Kanban com os pedidos separados por etapa' },
+      {
+        type: 'note',
+        text: 'Cada cartão mostra a "Última atividade" do pedido. Nas etapas ainda em andamento (que não são de venda concluída), aparece um aviso amarelo "Sai do quadro em N dias" quando faltam 7 dias ou menos, e vermelho "Expirado" depois dos 30 dias sem movimento. Pedidos em etapas de venda concluída (marcadas como "Ganho" nas configurações) também saem do quadro depois de 30 dias parados, mas sem aviso — eles continuam na aba Lista, no histórico do cliente e nos relatórios. Qualquer alteração no pedido (mudar a etapa, editar e salvar) conta como atividade e o traz de volta ao quadro.',
+      },
       {
         type: 'note',
         text: 'Se aparecer um aviso de erro ao arrastar o pedido, tire um print e mande para quem cuida do sistema — pode ser uma permissão que precisa ser ajustada.',
@@ -174,6 +180,10 @@ export const HELP_ARTICLES: HelpArticle[] = [
       },
       { type: 'image', src: '/ajuda/cadastrar-cliente-1.webp', alt: 'Lista de clientes com o botão Novo cliente' },
       { type: 'image', src: '/ajuda/cadastrar-cliente-2.webp', alt: 'Formulário de cliente preenchido, com endereço completado pelo CEP' },
+      {
+        type: 'note',
+        text: 'Depois de salvo, ao clicar no cliente você vê os dados dele e os pedidos mais recentes (número, data, etapa e total). Clique em um pedido da lista para abri-lo.',
+      },
     ],
     related: ['criar-pedido'],
   },
