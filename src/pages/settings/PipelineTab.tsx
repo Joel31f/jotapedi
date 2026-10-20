@@ -4,6 +4,7 @@ import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Switch } from '@/components/ui/switch'
 import { useWorkspace } from '@/providers/WorkspaceProvider'
 import { useCreateStage, useDeleteStage, useReorderStages, useUpdateStage } from '@/features/settings/pipelineApi'
 
@@ -41,6 +42,15 @@ export function PipelineTab() {
     }
   }
 
+  const handleToggleWon = async (id: string, isWon: boolean) => {
+    try {
+      await updateStage.mutateAsync({ id, is_won: isWon })
+      toast.success(isWon ? 'Estágio marcado como ganho' : 'Estágio desmarcado como ganho')
+    } catch (error) {
+      toast.error('Não foi possível alterar', { description: error instanceof Error ? error.message : undefined })
+    }
+  }
+
   const handleMove = (index: number, direction: -1 | 1) => {
     const targetIndex = index + direction
     if (targetIndex < 0 || targetIndex >= sortedStages.length) return
@@ -74,7 +84,10 @@ export function PipelineTab() {
               onChange={(e) => setEditingNames((prev) => ({ ...prev, [stage.id]: e.target.value }))}
               onBlur={() => handleRename(stage.id)}
             />
-            {stage.is_won ? <span className="shrink-0 text-[10px] text-primary">ganho</span> : null}
+            <label className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground">
+              <Switch checked={stage.is_won} onCheckedChange={(checked) => handleToggleWon(stage.id, checked)} />
+              Ganho
+            </label>
             <Button size="icon-sm" variant="ghost" disabled={index === 0} onClick={() => handleMove(index, -1)}>
               <ArrowUp className="size-3.5" />
             </Button>
@@ -95,7 +108,8 @@ export function PipelineTab() {
           </Button>
         </form>
         <p className="text-xs text-muted-foreground">
-          O estágio marcado como "ganho" é o único cujos pedidos entram no faturamento do Dashboard e Relatórios.
+          Os estágios marcados como "ganho" (por exemplo, Pago e Enviado) são os que entram no faturamento do Dashboard e dos
+          Relatórios. Pode marcar mais de um. Se mudar, os números do faturamento mudam junto, inclusive os de meses anteriores.
         </p>
       </CardContent>
     </Card>

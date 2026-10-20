@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useWorkspace } from '@/providers/WorkspaceProvider'
 
@@ -19,16 +19,21 @@ export function useCreateStage() {
 
 export function useUpdateStage() {
   const { refreshStages } = useWorkspace()
+  const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async ({ id, name, color }: { id: string; name?: string; color?: string }) => {
-      const payload: { name?: string; color?: string } = {}
+    mutationFn: async ({ id, name, color, is_won }: { id: string; name?: string; color?: string; is_won?: boolean }) => {
+      const payload: { name?: string; color?: string; is_won?: boolean } = {}
       if (name !== undefined) payload.name = name
       if (color !== undefined) payload.color = color
+      if (is_won !== undefined) payload.is_won = is_won
       const { error } = await supabase.from('pipeline_stages').update(payload).eq('id', id)
       if (error) throw new Error(error.message)
     },
-    onSuccess: () => refreshStages(),
+    onSuccess: (_data, variables) => {
+      refreshStages()
+      if (variables.is_won !== undefined) queryClient.invalidateQueries()
+    },
   })
 }
 
