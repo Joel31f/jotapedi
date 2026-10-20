@@ -3,6 +3,7 @@ import { endOfMonth, format, startOfMonth, subMonths } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { supabase } from '@/lib/supabase'
 import { useWorkspace } from '@/providers/WorkspaceProvider'
+import { KANBAN_RECENT_DAYS } from '@/features/orders/api'
 
 export function useDashboardMetrics() {
   const { activeWorkspace } = useWorkspace()
@@ -13,20 +14,19 @@ export function useDashboardMetrics() {
     queryKey: ['dashboard-metrics', activeWorkspace?.id, monthStart.toISOString()],
     enabled: !!activeWorkspace,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('orders')
-        .select('total, pipeline_stages(is_won)')
-        .eq('workspace_id', activeWorkspace!.id)
-        .gte('created_at', monthStart.toISOString())
-        .lte('created_at', monthEnd.toISOString())
+      const { data, error } = await supabase.rpc('dashboard_month_metrics', {
+        p_workspace_id: activeWorkspace!.id,
+        p_from: monthStart.toISOString(),
+        p_to: monthEnd.toISOString(),
+      })
       if (error) throw error
 
-      const rows = (data ?? []) as unknown as { total: number; pipeline_stages: { is_won: boolean } | null }[]
-      const totalOrders = rows.length
-      const wonOrders = rows.filter((r) => r.pipeline_stages?.is_won)
-      const revenue = wonOrders.reduce((sum, r) => sum + r.total, 0)
-      const avgTicket = wonOrders.length > 0 ? revenue / wonOrders.length : 0
-      const conversionRate = totalOrders > 0 ? (wonOrders.length / totalOrders) * 100 : 0
+      const row = data?.[0]
+      const totalOrders = Number(row?.total_orders ?? 0)
+      const wonCount = Number(row?.won_orders ?? 0)
+      const revenue = Number(row?.revenue ?? 0)
+      const avgTicket = wonCount > 0 ? revenue / wonCount : 0
+      const conversionRate = totalOrders > 0 ? (wonCount / totalOrders) * 100 : 0
 
       return { totalOrders, revenue, avgTicket, conversionRate }
     },
@@ -41,23 +41,20 @@ export function useRevenueTrend() {
     queryKey: ['revenue-trend', activeWorkspace?.id, start.toISOString()],
     enabled: !!activeWorkspace,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('orders')
-        .select('total, created_at, pipeline_stages(is_won)')
-        .eq('workspace_id', activeWorkspace!.id)
-        .gte('created_at', start.toISOString())
+      const { data, error } = await supabase.rpc('dashboard_revenue_trend', {
+        p_workspace_id: activeWorkspace!.id,
+        p_from: start.toISOString(),
+        p_tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      })
       if (error) throw error
 
-      const rows = (data ?? []) as unknown as { total: number; created_at: string; pipeline_stages: { is_won: boolean } | null }[]
       const buckets = new Map<string, number>()
       for (let i = 0; i < 6; i++) {
         const monthDate = subMonths(new Date(), 5 - i)
         buckets.set(format(monthDate, 'yyyy-MM'), 0)
       }
-      for (const row of rows) {
-        if (!row.pipeline_stages?.is_won) continue
-        const key = format(new Date(row.created_at), 'yyyy-MM')
-        if (buckets.has(key)) buckets.set(key, (buckets.get(key) ?? 0) + row.total)
+      for (const row of data ?? []) {
+        if (buckets.has(row.month)) buckets.set(row.month, Number(row.revenue))
       }
 
       return Array.from(buckets.entries()).map(([key, value]) => ({
@@ -75,20 +72,19 @@ export function usePipelineSummary() {
     queryKey: ['pipeline-summary', activeWorkspace?.id, stages.map((s) => s.id).join(',')],
     enabled: !!activeWorkspace && stages.length > 0,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('orders')
-        .select('stage_id, total')
-        .eq('workspace_id', activeWorkspace!.id)
+      const since = new Date(Date.now() - KANBAN_RECENT_DAYS * 24 * 60 * 60 * 1000).toISOString()
+      const { data, error } = await supabase.rpc('dashboard_pipeline_summary', {
+        p_workspace_id: activeWorkspace!.id,
+        p_since: since,
+      })
       if (error) throw error
 
-      return stages.map((stage) => {
-        const stageOrders = (data ?? []).filter((o) => o.stage_id === stage.id)
-        return {
-          stage,
-          count: stageOrders.length,
-          value: stageOrders.reduce((sum, o) => sum + o.total, 0),
-        }
-      })
+      const byStage = new Map((data ?? []).map((row) => [row.stage_id, row]))
+      return stages.map((stage) => ({
+        stage,
+        count: Number(byStage.get(stage.id)?.orders_count ?? 0),
+        value: Number(byStage.get(stage.id)?.total_value ?? 0),
+      }))
     },
   })
 }

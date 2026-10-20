@@ -352,6 +352,18 @@ export interface Database {
         Args: Record<string, never>
         Returns: void
       }
+      dashboard_month_metrics: {
+        Args: { p_workspace_id: string; p_from: string; p_to: string }
+        Returns: { total_orders: number; won_orders: number; revenue: number }[]
+      }
+      dashboard_revenue_trend: {
+        Args: { p_workspace_id: string; p_from: string; p_tz?: string }
+        Returns: { month: string; revenue: number }[]
+      }
+      dashboard_pipeline_summary: {
+        Args: { p_workspace_id: string; p_since: string }
+        Returns: { stage_id: string; orders_count: number; total_value: number }[]
+      }
     }
   }
 }

@@ -18,6 +18,7 @@ import {
   useRevenueTrend,
   useUpdateMonthlyGoal,
 } from '@/features/dashboard/api'
+import { KANBAN_RECENT_DAYS } from '@/features/orders/api'
 
 function MetricCard({ icon: Icon, label, value, hint }: { icon: typeof Wallet; label: string; value: string; hint?: string }) {
   return (
@@ -139,6 +140,7 @@ export function DashboardPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-sm">Pipeline resumido</CardTitle>
+            <p className="text-xs text-muted-foreground">Pedidos com atividade nos últimos {KANBAN_RECENT_DAYS} dias</p>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
             {pipeline.length === 0 ? (
