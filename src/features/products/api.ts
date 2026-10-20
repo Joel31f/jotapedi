@@ -81,6 +81,7 @@ export function useProductQuery(id: string | undefined) {
   return useQuery({
     queryKey: ['product', id],
     enabled: !!id,
+    staleTime: 0,
     queryFn: async () => {
       const { data, error } = await supabase.from('products').select('*').eq('id', id!).single()
       if (error) throw error

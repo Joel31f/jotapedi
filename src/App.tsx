@@ -27,7 +27,9 @@ import { ReportsPage } from '@/pages/reports/ReportsPage'
 import { AutomationsPage } from '@/pages/automations/AutomationsPage'
 import { SettingsPage } from '@/pages/settings/SettingsPage'
 
-const queryClient = new QueryClient()
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { staleTime: 2 * 60 * 1000 } },
+})
 
 function App() {
   return (

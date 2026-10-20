@@ -101,6 +101,7 @@ export function useOrderQuery(id: string | undefined) {
   return useQuery({
     queryKey: ['order', id],
     enabled: !!id,
+    staleTime: 0,
     queryFn: async () => {
       const { data: order, error } = await supabase
         .from('orders')

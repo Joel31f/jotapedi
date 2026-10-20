@@ -80,6 +80,7 @@ export function useClientQuery(id: string | undefined) {
   return useQuery({
     queryKey: ['client', id],
     enabled: !!id,
+    staleTime: 0,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('clients')
