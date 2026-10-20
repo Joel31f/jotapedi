@@ -25,7 +25,7 @@ export interface DateRange {
 
 function parseLocalDate(value: string): Date {
   const [year, month, day] = value.split('-').map(Number)
-  return new Date(year, month - 1, day)
+  return new Date(year, month - 1, day || 1)
 }
 
 export function resolveRange(preset: PeriodPreset, customFrom: string, customTo: string): DateRange {
@@ -149,7 +149,7 @@ export function useRevenueByPeriod(range: DateRange) {
   }
 
   return Array.from(buckets.entries()).map(([key, value]) => ({
-    label: format(byMonth ? new Date(`${key}-01`) : new Date(key), byMonth ? 'MMM/yy' : 'dd/MM', { locale: ptBR }),
+    label: format(parseLocalDate(key), byMonth ? 'MMM/yy' : 'dd/MM', { locale: ptBR }),
     revenue: value,
   }))
 }
