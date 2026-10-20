@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { ArrowLeft, Building2, Check, ListChecks, Mail, MapPin, Pencil, Phone, Plus, ShoppingCart, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -38,6 +38,13 @@ export function ClientDetailPage() {
   if (!client) {
     return <div className="p-6 text-sm text-muted-foreground">Cliente não encontrado.</div>
   }
+
+  const recentOrders = (orderStats?.orders ?? []).slice(0, 10) as unknown as {
+    id: string
+    total: number
+    created_at: string
+    pipeline_stages: { name: string } | null
+  }[]
 
   const stage = LEAD_STAGE_MAP[client.lead_stage]
   const address = [
@@ -150,6 +157,28 @@ export function ClientDetailPage() {
               {orderStats?.ordersCount ?? 0} pedido(s) — último em{' '}
               {orderStats?.lastOrderAt ? formatDate(orderStats.lastOrderAt) : '—'}
             </p>
+            {recentOrders.length > 0 ? (
+              <div className="mt-1 flex flex-col divide-y divide-border rounded-lg border border-border">
+                {recentOrders.map((order) => (
+                  <Link
+                    key={order.id}
+                    to={`/pedidos?edit=${order.id}`}
+                    className="flex items-center gap-3 px-3 py-2 hover:bg-accent"
+                    title="Abrir pedido"
+                  >
+                    <span className="font-mono text-xs text-foreground">#{order.id.slice(0, 8).toUpperCase()}</span>
+                    <span className="text-xs text-muted-foreground">{formatDate(order.created_at)}</span>
+                    <span className="flex-1 truncate text-xs text-muted-foreground">{order.pipeline_stages?.name ?? '—'}</span>
+                    <span className="text-xs font-medium text-foreground">{formatCurrency(order.total)}</span>
+                  </Link>
+                ))}
+              </div>
+            ) : null}
+            {orderStats && orderStats.ordersCount > recentOrders.length ? (
+              <p className="text-xs text-muted-foreground">
+                Mostrando os {recentOrders.length} mais recentes de {orderStats.ordersCount}.
+              </p>
+            ) : null}
           </CardContent>
         </Card>
 

@@ -97,14 +97,9 @@ export function useProductCategoriesQuery() {
     queryKey: ['product-categories', activeWorkspace?.id],
     enabled: !!activeWorkspace,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('products')
-        .select('category')
-        .eq('workspace_id', activeWorkspace!.id)
-        .not('category', 'is', null)
+      const { data, error } = await supabase.rpc('product_categories', { p_workspace_id: activeWorkspace!.id })
       if (error) throw error
-      const unique = new Set((data ?? []).map((row) => row.category).filter(Boolean) as string[])
-      return Array.from(unique).sort()
+      return (data ?? []).map((row) => row.category)
     },
   })
 }

@@ -364,6 +364,10 @@ export interface Database {
         Args: { p_workspace_id: string; p_since: string }
         Returns: { stage_id: string; orders_count: number; total_value: number }[]
       }
+      product_categories: {
+        Args: { p_workspace_id: string }
+        Returns: { category: string }[]
+      }
     }
   }
 }

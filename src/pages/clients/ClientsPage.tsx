@@ -6,22 +6,18 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
-import { KanbanBoard } from '@/components/kanban/KanbanBoard'
 import { LEAD_STAGES, LEAD_STAGE_MAP } from '@/config/leadStages'
 import {
   CLIENTS_PAGE_SIZE,
-  useAllClientsForKanbanQuery,
   useBulkDeleteClients,
   useBulkDeleteClientsByFilter,
   useBulkInsertClients,
   useClientQuery,
   useClientsQuery,
   useDeleteClient,
-  useUpdateClientStage,
   type ClientFilters,
   type ClientWithTags,
 } from '@/features/clients/api'
@@ -71,7 +67,6 @@ function splitCityState(value: string): { city: string | null; state: string | n
 export function ClientsPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const [view, setView] = useState<'lista' | 'crm'>('lista')
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebouncedValue(search, 300)
   const [leadStage, setLeadStage] = useState<ClientFilters['leadStage']>('all')
@@ -136,12 +131,10 @@ export function ClientsPage() {
 
   const filters: ClientFilters = { search: debouncedSearch, leadStage }
   const { data, isLoading } = useClientsQuery(filters, page)
-  const { data: kanbanClients = [] } = useAllClientsForKanbanQuery(debouncedSearch)
   const deleteClient = useDeleteClient()
   const bulkInsert = useBulkInsertClients()
   const bulkDeleteByIds = useBulkDeleteClients()
   const bulkDeleteByFilter = useBulkDeleteClientsByFilter()
-  const updateStage = useUpdateClientStage()
 
   const rows = data?.rows ?? []
   const total = data?.count ?? 0
@@ -228,12 +221,8 @@ export function ClientsPage() {
         </div>
       </div>
 
-      <Tabs value={view} onValueChange={(v) => setView(v as 'lista' | 'crm')} className="min-h-0 flex-1">
+      <div className="flex min-h-0 flex-1 flex-col">
         <div className="mb-4 flex flex-wrap items-center gap-2">
-          <TabsList>
-            <TabsTrigger value="lista">Lista</TabsTrigger>
-            <TabsTrigger value="crm">CRM</TabsTrigger>
-          </TabsList>
           <div className="relative min-w-48 max-w-sm flex-1">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -246,8 +235,7 @@ export function ClientsPage() {
               }}
             />
           </div>
-          {view === 'lista' ? (
-            <Select
+          <Select
               value={leadStage}
               onValueChange={(value) => {
                 setLeadStage(value as ClientFilters['leadStage'])
@@ -266,11 +254,10 @@ export function ClientsPage() {
                   </SelectItem>
                 ))}
               </SelectContent>
-            </Select>
-          ) : null}
+          </Select>
         </div>
 
-        <TabsContent value="lista" className="flex min-h-0 flex-1 flex-col">
+        <div className="flex min-h-0 flex-1 flex-col">
           {selectedCount > 0 ? (
             <div className="mb-3 flex flex-wrap items-center gap-3 rounded-lg border border-border bg-muted/40 px-3 py-2">
               <p className="text-sm text-foreground">{selectedCount} cliente(s) selecionado(s)</p>
@@ -392,34 +379,8 @@ export function ClientsPage() {
               </Button>
             </div>
           </div>
-        </TabsContent>
-
-        <TabsContent value="crm" className="flex min-h-0 flex-1 flex-col">
-          <KanbanBoard
-            columns={LEAD_STAGES}
-            items={kanbanClients}
-            getId={(c) => c.id}
-            getColumnId={(c) => c.lead_stage}
-            emptyLabel="Nenhum cliente neste estágio"
-            onMove={(id, columnId) => updateStage.mutate({ id, leadStage: columnId as LeadStage })}
-            renderCard={(client) => (
-              <button className="w-full text-left" onClick={() => navigate(`/clientes/${client.id}`)}>
-                <p className="text-sm font-medium text-foreground">{client.name}</p>
-                {client.company ? <p className="text-xs text-muted-foreground">{client.company}</p> : null}
-                {client.tags.length > 0 ? (
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {client.tags.map((tag) => (
-                      <Badge key={tag.id} variant="secondary" className="text-[10px]">
-                        {tag.name}
-                      </Badge>
-                    ))}
-                  </div>
-                ) : null}
-              </button>
-            )}
-          />
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
 
       <ClientFormDialog
         open={formOpen}

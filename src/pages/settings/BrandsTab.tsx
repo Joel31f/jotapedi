@@ -1,16 +1,19 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { toast } from 'sonner'
-import { Plus, Trash2 } from 'lucide-react'
+import { ImagePlus, Plus, Trash2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ConfirmDeleteDialog } from '@/components/ConfirmDeleteDialog'
-import { useBrandsQuery, useCreateBrand, useDeleteBrand, type Brand } from '@/features/brands/api'
+import { useBrandsQuery, useCreateBrand, useDeleteBrand, useReplaceBrandLogo, type Brand } from '@/features/brands/api'
 
 export function BrandsTab() {
   const { data: brands = [], isLoading } = useBrandsQuery()
   const createBrand = useCreateBrand()
   const deleteBrand = useDeleteBrand()
+  const replaceLogo = useReplaceBrandLogo()
+  const replaceInputRef = useRef<HTMLInputElement>(null)
+  const [replacingBrand, setReplacingBrand] = useState<Brand | null>(null)
   const [name, setName] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -27,6 +30,18 @@ export function BrandsTab() {
       toast.success('Marca criada')
     } catch (error) {
       toast.error('Não foi possível criar a marca', { description: error instanceof Error ? error.message : undefined })
+    }
+  }
+
+  const handleReplaceLogo = async (selected: File | undefined) => {
+    if (!selected || !replacingBrand) return
+    try {
+      await replaceLogo.mutateAsync({ brand: replacingBrand, file: selected })
+      toast.success('Logo atualizada')
+    } catch (error) {
+      toast.error('Não foi possível trocar a logo', { description: error instanceof Error ? error.message : undefined })
+    } finally {
+      setReplacingBrand(null)
     }
   }
 
@@ -58,6 +73,19 @@ export function BrandsTab() {
                 <img src={brand.logo_url} alt={brand.name} className="h-6 w-auto max-w-16 object-contain" />
               ) : null}
               <span className="flex-1 text-sm text-foreground">{brand.name}</span>
+              <Button
+                size="icon-sm"
+                variant="ghost"
+                title="Trocar logo"
+                aria-label="Trocar logo"
+                disabled={replaceLogo.isPending}
+                onClick={() => {
+                  setReplacingBrand(brand)
+                  replaceInputRef.current?.click()
+                }}
+              >
+                <ImagePlus className="size-3.5" />
+              </Button>
               <Button size="icon-sm" variant="ghost" onClick={() => setDeletingBrand(brand)}>
                 <Trash2 className="size-3.5" />
               </Button>
@@ -84,8 +112,20 @@ export function BrandsTab() {
             />
           </div>
         </form>
+        <input
+          ref={replaceInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            const selected = e.target.files?.[0]
+            e.target.value = ''
+            handleReplaceLogo(selected)
+          }}
+        />
         <p className="text-xs text-muted-foreground">
-          As marcas cadastradas aqui aparecem como opção de "Marca" ao criar um pedido — é opcional escolher uma.
+          As marcas cadastradas aqui aparecem como opção de "Marca" ao criar um pedido — é opcional escolher uma. As logos são
+          reduzidas automaticamente ao enviar; use o ícone de imagem para trocar uma logo já cadastrada.
         </p>
       </CardContent>
 

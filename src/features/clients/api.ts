@@ -54,28 +54,6 @@ export function useClientsQuery(filters: ClientFilters, page: number) {
   })
 }
 
-export function useAllClientsForKanbanQuery(search: string) {
-  const { activeWorkspace } = useWorkspace()
-
-  return useQuery({
-    queryKey: ['clients-kanban', activeWorkspace?.id, search],
-    enabled: !!activeWorkspace,
-    queryFn: async () => {
-      let query = supabase
-        .from('clients')
-        .select('*, client_tags(tags(id, name, color))')
-        .eq('workspace_id', activeWorkspace!.id)
-
-      const cleaned = search.replace(/[,%]/g, '').trim()
-      if (cleaned) query = query.or(`name.ilike.%${cleaned}%,company.ilike.%${cleaned}%`)
-
-      const { data, error } = await query.order('name', { ascending: true }).limit(500)
-      if (error) throw error
-      return (data ?? []).map(mapClientTags)
-    },
-  })
-}
-
 export function useClientQuery(id: string | undefined) {
   return useQuery({
     queryKey: ['client', id],
@@ -142,7 +120,6 @@ export function useCreateClient() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] })
-      queryClient.invalidateQueries({ queryKey: ['clients-kanban'] })
     },
   })
 }
@@ -159,33 +136,7 @@ export function useUpdateClient() {
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['clients'] })
-      queryClient.invalidateQueries({ queryKey: ['clients-kanban'] })
       queryClient.invalidateQueries({ queryKey: ['client', variables.id] })
-    },
-  })
-}
-
-export function useUpdateClientStage() {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: async ({ id, leadStage }: { id: string; leadStage: LeadStage }) => {
-      const { error } = await supabase.from('clients').update({ lead_stage: leadStage }).eq('id', id)
-      if (error) throw new Error(error.message)
-    },
-    onMutate: async ({ id, leadStage }) => {
-      const queries = queryClient.getQueriesData<ClientWithTags[]>({ queryKey: ['clients-kanban'] })
-      for (const [key, data] of queries) {
-        if (!data) continue
-        queryClient.setQueryData(
-          key,
-          data.map((c) => (c.id === id ? { ...c, lead_stage: leadStage } : c)),
-        )
-      }
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['clients-kanban'] })
-      queryClient.invalidateQueries({ queryKey: ['clients'] })
     },
   })
 }
@@ -200,7 +151,6 @@ export function useDeleteClient() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] })
-      queryClient.invalidateQueries({ queryKey: ['clients-kanban'] })
     },
   })
 }
@@ -223,7 +173,6 @@ export function useBulkDeleteClients() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] })
-      queryClient.invalidateQueries({ queryKey: ['clients-kanban'] })
     },
   })
 }
@@ -246,7 +195,6 @@ export function useBulkDeleteClientsByFilter() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] })
-      queryClient.invalidateQueries({ queryKey: ['clients-kanban'] })
     },
   })
 }
@@ -264,7 +212,6 @@ export function useBulkInsertClients() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] })
-      queryClient.invalidateQueries({ queryKey: ['clients-kanban'] })
     },
   })
 }
