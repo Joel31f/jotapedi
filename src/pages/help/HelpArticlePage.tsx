@@ -1,6 +1,5 @@
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { ArrowLeft, ShieldCheck } from 'lucide-react'
-import { ChatbaseWidget } from '@/components/help/ChatbaseWidget'
 import { getHelpArticle, type HelpBlock } from '@/data/helpArticles'
 
 export function HelpArticlePage() {
@@ -13,7 +12,6 @@ export function HelpArticlePage() {
 
   return (
     <div className="min-h-svh bg-neutral-950 text-neutral-100">
-      <ChatbaseWidget />
       <header className="border-b border-neutral-800 px-4 py-6 sm:px-8">
         <div className="mx-auto max-w-2xl">
           <Link to="/ajuda" className="inline-flex items-center gap-1.5 text-sm text-neutral-400 hover:text-neutral-200">

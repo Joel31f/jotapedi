@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from '@/components/ui/sonner'
+import { ChatbaseWidget } from '@/components/help/ChatbaseWidget'
 import { AuthProvider } from '@/providers/AuthProvider'
 import { WorkspaceProvider } from '@/providers/WorkspaceProvider'
 import { RequireAuth, RequireWorkspace, RequireSection, RedirectIfAuthed, RedirectIfHasWorkspace } from '@/routes/guards'
@@ -112,6 +113,7 @@ function App() {
             </Routes>
           </WorkspaceProvider>
         </AuthProvider>
+        <ChatbaseWidget />
       </BrowserRouter>
       <Toaster />
     </QueryClientProvider>
