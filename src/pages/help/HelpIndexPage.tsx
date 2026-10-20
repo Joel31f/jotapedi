@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Search, ShieldCheck } from 'lucide-react'
+import { ChatbaseWidget } from '@/components/help/ChatbaseWidget'
 import { HELP_ARTICLES, HELP_CATEGORIES } from '@/data/helpArticles'
 
 export function HelpIndexPage() {
@@ -15,6 +16,7 @@ export function HelpIndexPage() {
 
   return (
     <div className="min-h-svh bg-neutral-950 text-neutral-100">
+      <ChatbaseWidget />
       <header className="border-b border-neutral-800 px-4 py-6 sm:px-8">
         <div className="mx-auto max-w-3xl">
           <p className="text-sm font-medium text-emerald-400">Jotapedi</p>
