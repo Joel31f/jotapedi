@@ -46,7 +46,7 @@ export function InviteMemberDialog({ open, onOpenChange }: { open: boolean; onOp
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Liberar acesso para um membro</DialogTitle>
         </DialogHeader>

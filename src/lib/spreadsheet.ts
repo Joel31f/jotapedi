@@ -5,9 +5,20 @@ export interface ParsedSpreadsheet {
   rows: string[][]
 }
 
+// CSV não diz em que codificação foi salvo. A biblioteca assume Windows-1252, o que troca os acentos
+// de arquivos em UTF-8 ("Descrição" vira "DescriÃ§Ã£o"). Aqui tenta UTF-8 primeiro e, se o arquivo
+// não for UTF-8 válido (CSV antigo do Excel), cai para Windows-1252.
+export function decodeCsv(bytes: Uint8Array): string {
+  const utf8 = new TextDecoder('utf-8').decode(bytes)
+  return utf8.includes('�') ? new TextDecoder('windows-1252').decode(bytes) : utf8
+}
+
 export async function parseSpreadsheetFile(file: File): Promise<ParsedSpreadsheet> {
   const buffer = await file.arrayBuffer()
-  const workbook = XLSX.read(buffer, { type: 'array' })
+  const isCsv = /\.(csv|txt)$/i.test(file.name) || file.type === 'text/csv'
+  const workbook = isCsv
+    ? XLSX.read(decodeCsv(new Uint8Array(buffer)), { type: 'string' })
+    : XLSX.read(buffer, { type: 'array' })
   const sheet = workbook.Sheets[workbook.SheetNames[0]]
   const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false }) as string[][]
   const [headerRow, ...dataRows] = rows

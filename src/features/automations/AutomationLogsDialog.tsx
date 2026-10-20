@@ -16,7 +16,7 @@ export function AutomationLogsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[80vh] max-w-lg overflow-y-auto">
+      <DialogContent className="max-h-[80vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Histórico — {automation?.name}</DialogTitle>
         </DialogHeader>

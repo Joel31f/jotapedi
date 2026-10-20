@@ -48,7 +48,7 @@ export function ProductBulkEditDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Editar {count} produto(s)</DialogTitle>
           <DialogDescription>Só as alterações marcadas abaixo são aplicadas — o resto de cada produto fica como está.</DialogDescription>
