@@ -89,6 +89,7 @@ export function OrdersPage() {
   const [kanbanRecentOnly, setKanbanRecentOnly] = useState(true)
   const { data: kanbanOrders = [] } = useOrdersKanbanQuery(filters, kanbanRecentOnly)
   const kanbanLimitedByDays = kanbanRecentOnly && !filters.dateFrom && !filters.dateTo
+  const wonStageIds = new Set(stages.filter((s) => s.is_won).map((s) => s.id))
   const deleteOrder = useDeleteOrder()
   const updateStage = useUpdateOrderStage()
 
@@ -277,16 +278,30 @@ export function OrdersPage() {
                 {formatCurrency(colItems.reduce((sum, o) => sum + o.total, 0))}
               </span>
             )}
-            renderCard={(order) => (
-              <button
-                className="w-full text-left"
-                onClick={() => openEditDialog(order.id)}
-              >
-                <p className="text-sm font-medium text-foreground">{order.client?.name ?? 'Sem cliente'}</p>
-                <p className="text-xs text-muted-foreground">{formatDate(order.created_at)}</p>
-                <p className="mt-1 text-sm font-semibold text-primary">{formatCurrency(order.total)}</p>
-              </button>
-            )}
+            renderCard={(order) => {
+              const isOpen = !wonStageIds.has(order.stage_id)
+              const idleDays = Math.floor((Date.now() - new Date(order.updated_at).getTime()) / (24 * 60 * 60 * 1000))
+              const daysLeft = KANBAN_RECENT_DAYS - idleDays
+              return (
+                <button className="w-full text-left" onClick={() => openEditDialog(order.id)}>
+                  <p className="text-sm font-medium text-foreground">{order.client?.name ?? 'Sem cliente'}</p>
+                  <p className="text-xs text-muted-foreground">{formatDate(order.created_at)}</p>
+                  {isOpen ? (
+                    <p className="text-[11px] text-muted-foreground">Última atividade: {formatDate(order.updated_at)}</p>
+                  ) : null}
+                  <p className="mt-1 text-sm font-semibold text-primary">{formatCurrency(order.total)}</p>
+                  {isOpen && daysLeft <= 0 ? (
+                    <p className="mt-1 text-[11px] font-medium text-red-500">
+                      Expirado: {idleDays} dias sem atividade
+                    </p>
+                  ) : isOpen && daysLeft <= 7 ? (
+                    <p className="mt-1 text-[11px] font-medium text-amber-500">
+                      Sai do quadro {daysLeft <= 1 ? 'em até 1 dia' : `em ${daysLeft} dias`}
+                    </p>
+                  ) : null}
+                </button>
+              )
+            }}
           />
         </TabsContent>
 
