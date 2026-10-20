@@ -94,7 +94,7 @@ export function ReportsPage() {
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardContent className="py-4">
-            <p className="text-xs text-muted-foreground">Total de leads</p>
+            <p className="text-xs text-muted-foreground">Novos clientes no período</p>
             <p className="text-lg font-semibold text-foreground">{metrics.totalLeads}</p>
           </CardContent>
         </Card>

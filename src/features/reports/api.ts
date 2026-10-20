@@ -23,6 +23,11 @@ export interface DateRange {
   end: Date
 }
 
+function parseLocalDate(value: string): Date {
+  const [year, month, day] = value.split('-').map(Number)
+  return new Date(year, month - 1, day)
+}
+
 export function resolveRange(preset: PeriodPreset, customFrom: string, customTo: string): DateRange {
   const now = new Date()
   switch (preset) {
@@ -34,8 +39,8 @@ export function resolveRange(preset: PeriodPreset, customFrom: string, customTo:
       return { start: startOfQuarter(now), end: endOfQuarter(now) }
     case 'custom':
       return {
-        start: customFrom ? startOfDay(new Date(customFrom)) : startOfMonth(now),
-        end: customTo ? endOfDay(new Date(customTo)) : endOfDay(now),
+        start: customFrom ? startOfDay(parseLocalDate(customFrom)) : startOfMonth(now),
+        end: customTo ? endOfDay(parseLocalDate(customTo)) : endOfDay(now),
       }
     case 'month':
     default:
