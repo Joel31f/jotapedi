@@ -33,6 +33,8 @@ export const HELP_ARTICLES: HelpArticle[] = [
           'Se o negócio usar marcas, escolha a Marca. Se usar mais de um vendedor, escolha o Responsável.',
           'Em Itens, clique em "Adicionar item" e busque o produto pelo código ou pela descrição. Ajuste a quantidade e, se precisar, o preço e o desconto.',
           'Preencha Contato, Transporte, Condição de pagamento, Previsão de entrega e Nº da ordem de compra do cliente, se tiver essas informações.',
+          'Se precisar, preencha a Observação do cliente (sai na impressão do pedido) e a Observação para produção (sai só na impressão para produção). Veja o artigo "Observação do cliente e observação para produção".',
+          'Se quiser informar a quantidade de caixas, preencha o campo Caixas em cada item e o Total de caixas do pedido (campos informativos).',
           'Clique em Salvar. O pedido continua aberto na tela, então você pode conferir tudo, mudar algo e salvar de novo sem perder o que já fez.',
         ],
       },
@@ -42,7 +44,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
         text: 'Se a internet cair ou a aba recarregar sozinha no meio do preenchimento, o sistema guarda um rascunho automaticamente. Basta reabrir o mesmo pedido (ou clicar em Novo pedido de novo) que o que você tinha digitado volta.',
       },
     ],
-    related: ['desconto-item-pedido', 'imprimir-pedido', 'mover-pedido-kanban'],
+    related: ['observacoes-cliente-producao', 'caixas-pedido', 'desconto-item-pedido', 'imprimir-pedido', 'mover-pedido-kanban'],
   },
   {
     slug: 'desconto-item-pedido',
@@ -124,7 +126,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
         items: [
           'Abra o pedido (clique nele na lista ou no quadro Kanban).',
           'No rodapé da tela, clique em "Imprimir" para a via completa, com preços — a que você entrega para o cliente.',
-          'Clique em "Imprimir p/ produção" para a via sem nenhum preço, valores nem totais — só código, descrição, quantidade e as informações do pedido (transporte, previsão de entrega, etc). Essa via tem o selo "Via de produção" no topo.',
+          'Clique em "Imprimir p/ produção" para a via sem nenhum preço, valores nem totais — só código, descrição, quantidade e as informações do pedido (transporte, previsão de entrega, etc). Essa via tem o selo "Via de produção" no topo e mostra, em destaque, a Observação para produção (a Observação do cliente também aparece). A via do cliente nunca mostra a Observação para produção.',
           'As duas abrem em uma aba nova, já prontas para imprimir ou salvar como PDF.',
         ],
       },
@@ -132,7 +134,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
       { type: 'image', src: '/ajuda/imprimir-pedido-2.webp', alt: 'Via do cliente, com preços e totais' },
       { type: 'image', src: '/ajuda/imprimir-pedido-3.webp', alt: 'Via de produção, sem preços' },
     ],
-    related: ['criar-pedido', 'observacao-item-pedido'],
+    related: ['criar-pedido', 'observacoes-cliente-producao', 'caixas-pedido', 'observacao-item-pedido'],
   },
   {
     slug: 'mover-pedido-kanban',
@@ -145,6 +147,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
         items: [
           'Pelo quadro: em Pedidos, na aba Kanban, clique e arraste o cartão do pedido para a coluna da etapa desejada (Orçamento, Confirmado, Pago, Enviado, etc).',
           'Pelo formulário: abra o pedido e mude o campo Estágio, depois clique em Salvar.',
+          'Se o cartão do pedido tiver um cadeado, ele está numa etapa bloqueada (por exemplo, em produção): só administradores conseguem mudar a etapa dele. Veja o artigo "Pedido bloqueado: por que não consigo editar?".',
           'Se não achar um pedido antigo no quadro, clique em "Ver todos" acima das colunas. Por padrão o quadro mostra só os pedidos com movimento nos últimos 30 dias (para ficar rápido); a aba Lista sempre mostra todos.',
         ],
       },
@@ -158,7 +161,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
         text: 'Se aparecer um aviso de erro ao arrastar o pedido, tire um print e mande para quem cuida do sistema — pode ser uma permissão que precisa ser ajustada.',
       },
     ],
-    related: ['criar-pedido'],
+    related: ['criar-pedido', 'pedido-bloqueado'],
   },
   {
     slug: 'cadastrar-cliente',
@@ -286,6 +289,153 @@ export const HELP_ARTICLES: HelpArticle[] = [
       { type: 'image', src: '/ajuda/convidar-membro-equipe-1.webp', alt: 'Aba Equipe em Configurações, com o botão Convidar membro' },
       { type: 'image', src: '/ajuda/convidar-membro-equipe-2.webp', alt: 'Janela para liberar o acesso de um novo membro' },
     ],
+  },
+  {
+    slug: 'observacoes-cliente-producao',
+    title: 'Observação do cliente e observação para produção',
+    category: 'Pedidos',
+    summary: 'Dois campos de observação no pedido: um que sai para o cliente e outro só para a fábrica.',
+    blocks: [
+      {
+        type: 'p',
+        text: 'O pedido tem dois campos de observação, lado a lado, logo acima dos totais. Eles servem para coisas diferentes e saem em impressões diferentes.',
+      },
+      {
+        type: 'steps',
+        items: [
+          'Observação do cliente: escreva o que o cliente deve ver no pedido, como combinados de entrega ou condições. Ela sai na impressão normal (via do cliente) e também na via de produção.',
+          'Observação para produção: escreva instruções só para a fábrica, como folga de corte, separação por cor ou prioridade. Ela sai apenas na impressão "Imprimir p/ produção", em um quadro de destaque, e nunca aparece na via do cliente.',
+          'Clique em Salvar. As duas observações ficam guardadas no pedido e voltam quando você abrir o pedido de novo.',
+        ],
+      },
+      {
+        type: 'note',
+        text: 'Para anotar algo de um item específico (uma medida, uma cor), use a observação do item, que fica na própria linha do item. A observação do item sai nas duas vias.',
+      },
+      {
+        type: 'note',
+        text: 'Os pedidos antigos continuam com a observação que já tinham: ela passou a se chamar Observação do cliente. A Observação para produção começa vazia.',
+      },
+    ],
+    related: ['criar-pedido', 'imprimir-pedido', 'observacao-item-pedido'],
+  },
+  {
+    slug: 'caixas-pedido',
+    title: 'Como informar a quantidade de caixas',
+    category: 'Pedidos',
+    summary: 'Campos informativos de caixas em cada item e no total do pedido, úteis para cotação de frete.',
+    blocks: [
+      {
+        type: 'p',
+        text: 'Existem dois campos de caixas no pedido. Os dois são só informativos: o sistema não soma, não calcula nada com eles e eles não mudam nenhum valor do pedido.',
+      },
+      {
+        type: 'steps',
+        items: [
+          'Em cada item, preencha o campo Caixas (ao lado da Qtd.) com a quantidade de caixas daquele item.',
+          'Mais abaixo, ao lado de Desconto global e Frete, preencha o Total de caixas do pedido. Esse número é digitado por você; ele não é a soma dos itens.',
+          'Clique em Salvar.',
+        ],
+      },
+      {
+        type: 'note',
+        text: 'Nas impressões, a coluna Caixas e o Total de caixas aparecem só quando foram preenchidos, nas duas vias (cliente e produção). Em pedidos sem caixas, a impressão continua igual à de antes.',
+      },
+    ],
+    related: ['criar-pedido', 'imprimir-pedido', 'observacoes-cliente-producao'],
+  },
+  {
+    slug: 'pedido-bloqueado',
+    title: 'Pedido bloqueado: por que não consigo editar?',
+    category: 'Pedidos',
+    summary: 'Em algumas etapas (como em produção) o pedido fica travado e só administradores conseguem alterar.',
+    blocks: [
+      {
+        type: 'p',
+        text: 'Quando um pedido chega a uma etapa bloqueada, por exemplo "Em produção", ele deixa de poder ser alterado por vendedores. Isso evita que o pedido mude depois de ir para a fábrica.',
+      },
+      {
+        type: 'steps',
+        items: [
+          'No quadro Kanban e na Lista, o pedido bloqueado aparece com um cadeado.',
+          'Ao abrir o pedido, aparece o aviso "Pedido bloqueado nesta etapa: somente administradores podem alterá-lo". Os campos ficam só para leitura e o botão Salvar some.',
+          'Você ainda pode consultar o pedido e usar "Imprimir" e "Imprimir p/ produção" normalmente.',
+          'Você não consegue editar dados nem itens, mudar a etapa, arrastar o cartão no Kanban ou excluir o pedido. Se precisar de uma correção, peça a um administrador.',
+        ],
+      },
+      {
+        type: 'note',
+        text: 'Qualquer pessoa pode levar um pedido para uma etapa bloqueada (arrastando o cartão ou mudando a Etapa no formulário). Depois que ele entra, só administradores mexem. Por isso, confira o pedido antes de mandá-lo para essa etapa.',
+      },
+      {
+        type: 'note',
+        text: 'Ao criar um pedido novo, as etapas bloqueadas não aparecem na lista de etapas para vendedores: primeiro crie o pedido e depois leve-o para a etapa bloqueada.',
+      },
+    ],
+    related: ['mover-pedido-kanban', 'bloquear-etapa-pedido'],
+  },
+  {
+    slug: 'bloquear-etapa-pedido',
+    title: 'Como bloquear a edição dos pedidos em uma etapa',
+    category: 'Geral',
+    summary: 'Escolha quais etapas do pipeline travam o pedido para vendedores. Só para administradores.',
+    adminOnly: true,
+    blocks: [
+      {
+        type: 'steps',
+        items: [
+          'Clique em Configurações, no menu lateral.',
+          'Abra a aba Pipeline.',
+          'Na etapa desejada (por exemplo, "Em produção"), ligue a chave "Bloqueia", ao lado da chave "Ganho". Pode marcar mais de uma etapa.',
+          'Pronto: o sistema avisa que a etapa passou a bloquear a edição dos pedidos. Para desfazer, desligue a chave.',
+        ],
+      },
+      {
+        type: 'note',
+        text: 'Ao ligar a chave, todos os pedidos que já estão naquela etapa ficam bloqueados na hora para os vendedores. Avise a equipe antes de ligar.',
+      },
+      {
+        type: 'p',
+        text: 'Pedidos em etapas bloqueadas só podem ser alterados por administradores: editar dados e itens, mudar de etapa e excluir. A regra vale no sistema inteiro, não só na tela. Vendedores continuam podendo consultar e imprimir.',
+      },
+      {
+        type: 'note',
+        text: 'Quando um administrador abre um pedido bloqueado, aparece um aviso informando que o pedido está bloqueado para vendedores, e ele pode editar normalmente. Se alguém travar um pedido por engano, mude a etapa dele para uma que não bloqueie.',
+      },
+    ],
+    related: ['pedido-bloqueado', 'mover-pedido-kanban'],
+  },
+  {
+    slug: 'relatorio-vendedores',
+    title: 'Como comparar o desempenho dos vendedores',
+    category: 'Geral',
+    summary: 'A aba Vendedores, em Relatórios, mostra os números de cada vendedor lado a lado. Só para administradores.',
+    adminOnly: true,
+    blocks: [
+      {
+        type: 'steps',
+        items: [
+          'Clique em Relatórios, no menu lateral.',
+          'Escolha o período no seletor do topo (Hoje, Esta semana, Este mês, Trimestre ou Personalizado).',
+          'Abra a aba Vendedores. Aparece o comparativo com uma linha por vendedor e uma linha de Total.',
+          'Para ordenar, clique no título de uma coluna (por exemplo, Faturamento). Clicar de novo inverte a ordem.',
+          'Para ver só um vendedor, escolha o nome em "Ver dados de:" ou clique na linha dele na tabela. Aparecem os indicadores, o funil de etapas e os maiores clientes só daquela pessoa. Clique de novo na linha (ou escolha "Todos os vendedores") para voltar.',
+        ],
+      },
+      {
+        type: 'p',
+        text: 'O que cada coluna mostra: Pedidos (pedidos criados no período em que a pessoa é a responsável), Ganhos (quantos estão em etapas marcadas como "Ganho"), Faturamento (soma dos pedidos ganhos), Ticket médio (faturamento dividido pelos ganhos), Conversão (ganhos divididos pelos pedidos) e Atividades (percentual de atividades do período já concluídas).',
+      },
+      {
+        type: 'note',
+        text: 'O vendedor de cada pedido é o campo Responsável do pedido. Pedidos sem responsável aparecem numa linha chamada "Sem responsável", para o total bater com o relatório geral.',
+      },
+      {
+        type: 'note',
+        text: 'Só administradores veem a aba Vendedores. Vendedores comuns veem apenas os relatórios gerais.',
+      },
+    ],
+    related: ['mover-pedido-kanban'],
   },
   {
     slug: 'pagina-recarregou-sozinha',
