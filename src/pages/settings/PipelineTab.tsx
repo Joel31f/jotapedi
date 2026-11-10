@@ -51,6 +51,15 @@ export function PipelineTab() {
     }
   }
 
+  const handleToggleLock = async (id: string, locks: boolean) => {
+    try {
+      await updateStage.mutateAsync({ id, locks_order: locks })
+      toast.success(locks ? 'Estágio agora bloqueia a edição dos pedidos' : 'Estágio não bloqueia mais a edição')
+    } catch (error) {
+      toast.error('Não foi possível alterar', { description: error instanceof Error ? error.message : undefined })
+    }
+  }
+
   const handleMove = (index: number, direction: -1 | 1) => {
     const targetIndex = index + direction
     if (targetIndex < 0 || targetIndex >= sortedStages.length) return
@@ -70,7 +79,7 @@ export function PipelineTab() {
   }
 
   return (
-    <Card className="max-w-xl">
+    <Card className="max-w-2xl">
       <CardHeader>
         <CardTitle className="text-sm">Estágios do pipeline de pedidos</CardTitle>
       </CardHeader>
@@ -87,6 +96,10 @@ export function PipelineTab() {
             <label className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground">
               <Switch checked={stage.is_won} onCheckedChange={(checked) => handleToggleWon(stage.id, checked)} />
               Ganho
+            </label>
+            <label className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground" title="Pedidos nesta etapa só podem ser alterados por administradores">
+              <Switch checked={stage.locks_order} onCheckedChange={(checked) => handleToggleLock(stage.id, checked)} />
+              Bloqueia
             </label>
             <Button size="icon-sm" variant="ghost" disabled={index === 0} onClick={() => handleMove(index, -1)}>
               <ArrowUp className="size-3.5" />

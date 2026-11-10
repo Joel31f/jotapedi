@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
-import { ArrowDown, ArrowUp, Plus, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, Lock, Plus, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -31,7 +31,7 @@ import { OrderFormDialog } from '@/features/orders/OrderFormDialog'
 type SortColumn = 'created_at' | 'total' | 'client' | 'stage'
 
 export function OrdersPage() {
-  const { activeWorkspace, stages } = useWorkspace()
+  const { activeWorkspace, stages, isAdmin } = useWorkspace()
   const [searchParams, setSearchParams] = useSearchParams()
   const [view, setView] = useState<'kanban' | 'lista'>('kanban')
   const [filters, setFilters] = useState<OrderFilters>(EMPTY_ORDER_FILTERS)
@@ -90,6 +90,7 @@ export function OrdersPage() {
   const { data: kanbanOrders = [] } = useOrdersKanbanQuery(filters, kanbanRecentOnly)
   const kanbanLimitedByDays = kanbanRecentOnly && !filters.dateFrom && !filters.dateTo
   const wonStageIds = new Set(stages.filter((s) => s.is_won).map((s) => s.id))
+  const lockedStageIds = new Set(stages.filter((s) => s.locks_order).map((s) => s.id))
   const deleteOrder = useDeleteOrder()
   const updateStage = useUpdateOrderStage()
 
@@ -264,7 +265,14 @@ export function OrdersPage() {
             getId={(o) => o.id}
             getColumnId={(o) => o.stage_id}
             emptyLabel="Nenhum pedido neste estágio"
-            onMove={(id, columnId) =>
+            onMove={(id, columnId) => {
+              const moving = kanbanOrders.find((o) => o.id === id)
+              if (!isAdmin && moving && lockedStageIds.has(moving.stage_id)) {
+                toast.error('Pedido bloqueado', {
+                  description: 'Somente administradores podem mudar a etapa de um pedido bloqueado.',
+                })
+                return
+              }
               updateStage.mutate(
                 { id, stageId: columnId },
                 {
@@ -272,7 +280,7 @@ export function OrdersPage() {
                     toast.error('Não foi possível mover o pedido', { description: error.message }),
                 },
               )
-            }
+            }}
             renderColumnHeaderExtra={(_columnId, colItems) => (
               <span className="text-xs text-muted-foreground">
                 {formatCurrency(colItems.reduce((sum, o) => sum + o.total, 0))}
@@ -284,7 +292,10 @@ export function OrdersPage() {
               const daysLeft = KANBAN_RECENT_DAYS - idleDays
               return (
                 <button className="w-full text-left" onClick={() => openEditDialog(order.id)}>
-                  <p className="text-sm font-medium text-foreground">{order.client?.name ?? 'Sem cliente'}</p>
+                  <p className="flex items-center gap-1 text-sm font-medium text-foreground">
+                    {lockedStageIds.has(order.stage_id) ? <Lock className="size-3 shrink-0 text-muted-foreground" /> : null}
+                    {order.client?.name ?? 'Sem cliente'}
+                  </p>
                   <p className="text-xs text-muted-foreground">{formatDate(order.created_at)}</p>
                   {isOpen ? (
                     <p className="text-[11px] text-muted-foreground">Última atividade: {formatDate(order.updated_at)}</p>
@@ -346,13 +357,17 @@ export function OrdersPage() {
                       <TableCell className="text-xs text-muted-foreground">{formatDate(order.created_at)}</TableCell>
                       <TableCell className="font-medium text-foreground">{formatCurrency(order.total)}</TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
-                        <Button
-                          size="icon-sm"
-                          variant="ghost"
-                          onClick={() => setDeletingOrder(order)}
-                        >
-                          <X className="size-3.5" />
-                        </Button>
+                        {lockedStageIds.has(order.stage_id) && !isAdmin ? (
+                          <Lock className="mx-auto size-3.5 text-muted-foreground" aria-label="Pedido bloqueado" />
+                        ) : (
+                          <Button
+                            size="icon-sm"
+                            variant="ghost"
+                            onClick={() => setDeletingOrder(order)}
+                          >
+                            <X className="size-3.5" />
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))

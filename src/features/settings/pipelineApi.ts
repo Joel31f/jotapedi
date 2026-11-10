@@ -22,17 +22,30 @@ export function useUpdateStage() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async ({ id, name, color, is_won }: { id: string; name?: string; color?: string; is_won?: boolean }) => {
-      const payload: { name?: string; color?: string; is_won?: boolean } = {}
+    mutationFn: async ({
+      id,
+      name,
+      color,
+      is_won,
+      locks_order,
+    }: {
+      id: string
+      name?: string
+      color?: string
+      is_won?: boolean
+      locks_order?: boolean
+    }) => {
+      const payload: { name?: string; color?: string; is_won?: boolean; locks_order?: boolean } = {}
       if (name !== undefined) payload.name = name
       if (color !== undefined) payload.color = color
       if (is_won !== undefined) payload.is_won = is_won
+      if (locks_order !== undefined) payload.locks_order = locks_order
       const { error } = await supabase.from('pipeline_stages').update(payload).eq('id', id)
       if (error) throw new Error(error.message)
     },
     onSuccess: (_data, variables) => {
       refreshStages()
-      if (variables.is_won !== undefined) queryClient.invalidateQueries()
+      if (variables.is_won !== undefined || variables.locks_order !== undefined) queryClient.invalidateQueries()
     },
   })
 }

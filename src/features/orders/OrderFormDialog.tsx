@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { MessageSquarePlus, Plus, Printer, Trash2 } from 'lucide-react'
+import { Lock, MessageSquarePlus, Plus, Printer, Trash2 } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -134,6 +134,11 @@ export function OrderFormDialog({
   const { activeWorkspace, activeMembership, isAdmin, stages } = useWorkspace()
   const [createdId, setCreatedId] = useState<string | null>(null)
   const currentOrderId = order?.id ?? createdId
+  const lockedStageIds = new Set(stages.filter((s) => s.locks_order).map((s) => s.id))
+  const orderIsLocked = !!order && lockedStageIds.has(order.stage_id)
+  const readOnly = orderIsLocked && !isAdmin
+  // Quem não é admin não cria pedido já dentro de uma etapa bloqueada (os itens ficariam travados).
+  const stageOptions = !order && !isAdmin ? stages.filter((s) => !s.locks_order) : stages
   const [clientId, setClientId] = useState<string | null>(null)
   const [clientLabel, setClientLabel] = useState<string | null>(null)
   const [stageId, setStageId] = useState<string>('')
@@ -485,6 +490,10 @@ export function OrderFormDialog({
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
+    if (readOnly) {
+      toast.error('Pedido bloqueado', { description: 'Somente administradores podem alterar este pedido.' })
+      return
+    }
     if (!clientId) {
       toast.error('Selecione um cliente')
       return
@@ -532,7 +541,12 @@ export function OrderFormDialog({
 
     try {
       if (currentOrderId) {
-        await updateOrder.mutateAsync({ id: currentOrderId, payload: orderPayload, items: itemsPayload })
+        await updateOrder.mutateAsync({
+          id: currentOrderId,
+          payload: orderPayload,
+          items: itemsPayload,
+          itemsFirst: !isAdmin && lockedStageIds.has(stageId) && !orderIsLocked,
+        })
         toast.success('Pedido atualizado')
       } else {
         const newId = await createOrder.mutateAsync({ payload: orderPayload, items: itemsPayload })
@@ -555,6 +569,23 @@ export function OrderFormDialog({
           <DialogTitle>{order ? 'Editar pedido' : 'Novo pedido'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          {orderIsLocked ? (
+            <div
+              className={cn(
+                'flex items-start gap-2 rounded-lg border p-3 text-sm',
+                readOnly ? 'border-amber-500/40 bg-amber-500/10 text-amber-500' : 'border-border bg-muted/40 text-muted-foreground',
+              )}
+            >
+              <Lock className="mt-0.5 size-4 shrink-0" />
+              <p>
+                {readOnly
+                  ? 'Pedido bloqueado nesta etapa: somente administradores podem alterá-lo. Você pode consultar e imprimir.'
+                  : 'Pedido bloqueado para vendedores nesta etapa. Você pode editar por ser administrador.'}
+              </p>
+            </div>
+          ) : null}
+
+          <fieldset disabled={readOnly} className="m-0 flex min-w-0 flex-col gap-5 border-0 p-0">
           <div className="flex flex-wrap gap-3">
             <div className="flex min-w-[220px] flex-1 flex-col gap-1.5">
               <Label>Cliente</Label>
@@ -574,13 +605,13 @@ export function OrderFormDialog({
               <Select
                 value={stageId}
                 onValueChange={(value) => setStageId(value ?? '')}
-                items={stages.map((s) => ({ value: s.id, label: s.name }))}
+                items={stageOptions.map((s) => ({ value: s.id, label: s.name }))}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Selecionar estágio" />
                 </SelectTrigger>
                 <SelectContent>
-                  {stages.map((stage) => (
+                  {stageOptions.map((stage) => (
                     <SelectItem key={stage.id} value={stage.id}>
                       {stage.name}
                     </SelectItem>
@@ -925,6 +956,7 @@ export function OrderFormDialog({
               </div>
             </div>
           ) : null}
+          </fieldset>
 
           <DialogFooter>
             {currentOrderId ? (
@@ -949,9 +981,11 @@ export function OrderFormDialog({
                 </a>
               </>
             ) : null}
-            <Button type="submit" disabled={saving}>
-              {saving ? 'Salvando…' : 'Salvar'}
-            </Button>
+            {readOnly ? null : (
+              <Button type="submit" disabled={saving}>
+                {saving ? 'Salvando…' : 'Salvar'}
+              </Button>
+            )}
           </DialogFooter>
         </form>
 

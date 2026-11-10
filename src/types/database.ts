@@ -76,6 +76,7 @@ export interface Database {
           position: number
           color: string
           is_won: boolean
+          locks_order: boolean
           created_at: string
         }
         Insert: Partial<Database['public']['Tables']['pipeline_stages']['Row']> & { workspace_id: string; name: string }

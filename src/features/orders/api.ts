@@ -163,9 +163,11 @@ export interface OrderItemPayload {
 }
 
 async function replaceOrderItems(orderId: string, items: OrderItemPayload[]) {
-  await supabase.from('order_items').delete().eq('order_id', orderId)
+  const { error: deleteError } = await supabase.from('order_items').delete().eq('order_id', orderId)
+  if (deleteError) throw new Error(deleteError.message)
   if (items.length > 0) {
-    await supabase.from('order_items').insert(items.map((item) => ({ ...item, order_id: orderId })))
+    const { error: insertError } = await supabase.from('order_items').insert(items.map((item) => ({ ...item, order_id: orderId })))
+    if (insertError) throw new Error(insertError.message)
   }
 }
 
@@ -181,7 +183,13 @@ export function useCreateOrder() {
         .select('id')
         .single()
       if (error) throw new Error(error.message)
-      await replaceOrderItems(data.id, items)
+      try {
+        await replaceOrderItems(data.id, items)
+      } catch (itemsError) {
+        // Não deixa um pedido "vazio" para trás se os itens não puderam ser gravados.
+        await supabase.from('orders').delete().eq('id', data.id)
+        throw itemsError
+      }
       return data.id
     },
     onSuccess: () => {
@@ -195,11 +203,24 @@ export function useUpdateOrder() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async ({ id, payload, items }: { id: string; payload: OrderPayload; items: OrderItemPayload[] }) => {
+    mutationFn: async ({
+      id,
+      payload,
+      items,
+      itemsFirst = false,
+    }: {
+      id: string
+      payload: OrderPayload
+      items: OrderItemPayload[]
+      // Usado quando o pedido está sendo levado para uma etapa que bloqueia a edição:
+      // os itens precisam ser trocados antes, enquanto o pedido ainda não está bloqueado.
+      itemsFirst?: boolean
+    }) => {
+      if (itemsFirst) await replaceOrderItems(id, items)
       const { error, count } = await supabase.from('orders').update(payload, { count: 'exact' }).eq('id', id)
       if (error) throw new Error(error.message)
       if (!count) throw new Error('Pedido não encontrado ou sem permissão para editar nesta área de trabalho.')
-      await replaceOrderItems(id, items)
+      if (!itemsFirst) await replaceOrderItems(id, items)
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['orders'] })
