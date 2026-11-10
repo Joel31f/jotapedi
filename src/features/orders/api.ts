@@ -138,6 +138,7 @@ export interface OrderPayload {
   total: number
   notes: string | null
   production_notes: string | null
+  boxes: number | null
   contact_name: string | null
   shipping_method: string | null
   payment_terms: string | null

@@ -83,8 +83,8 @@ export function OrderPrintPage() {
     { label: 'Previsão de entrega', value: order.delivery_date ? formatDateOnly(order.delivery_date) : null },
     { label: 'Vendedor', value: seller },
   ].filter((detail) => detail.value)
-  const totalBoxes = order.items.reduce((sum: number, item: any) => sum + Number(item.boxes ?? 0), 0)
-  const showBoxes = totalBoxes > 0
+  const totalBoxes = Number(order.boxes ?? 0)
+  const showBoxes = order.items.some((item: any) => Number(item.boxes) > 0)
   const fmtBoxes = (value: number) => value.toLocaleString('pt-BR', { maximumFractionDigits: 2 })
   const itemsGrossSubtotal = order.items.reduce((sum: number, item: any) => sum + item.quantity * item.unit_price, 0)
   const itemDiscountsTotal = itemsGrossSubtotal - order.subtotal
@@ -220,7 +220,7 @@ export function OrderPrintPage() {
           </tbody>
         </table>
 
-        {showBoxes ? (
+        {totalBoxes > 0 ? (
           <p className="mb-2 text-right text-[11px] font-semibold">Total de caixas: {fmtBoxes(totalBoxes)}</p>
         ) : null}
 

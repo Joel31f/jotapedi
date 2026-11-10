@@ -102,15 +102,12 @@ interface OrderDraft {
   freight: string
   notes: string
   productionNotes?: string
+  boxesTotal?: string
   contactName: string
   shippingMethod: string
   paymentTerms: string
   deliveryDate: string
   purchaseOrderNumber: string
-}
-
-function formatBoxes(value: number) {
-  return value.toLocaleString('pt-BR', { maximumFractionDigits: 2 })
 }
 
 function itemTotal(item: LineItem) {
@@ -149,6 +146,7 @@ export function OrderFormDialog({
   const [freight, setFreight] = useState('0')
   const [notes, setNotes] = useState('')
   const [productionNotes, setProductionNotes] = useState('')
+  const [boxesTotal, setBoxesTotal] = useState('')
   const [contactName, setContactName] = useState('')
   const [shippingMethod, setShippingMethod] = useState('')
   const [paymentTerms, setPaymentTerms] = useState('')
@@ -217,6 +215,7 @@ export function OrderFormDialog({
       setFreight(draft.freight)
       setNotes(draft.notes)
       setProductionNotes(draft.productionNotes ?? '')
+      setBoxesTotal(draft.boxesTotal ?? '')
       setContactName(draft.contactName)
       setShippingMethod(draft.shippingMethod)
       setPaymentTerms(draft.paymentTerms)
@@ -245,6 +244,7 @@ export function OrderFormDialog({
       setFreight(String(order.freight))
       setNotes(order.notes ?? '')
       setProductionNotes(order.production_notes ?? '')
+      setBoxesTotal(order.boxes != null ? String(order.boxes) : '')
       setContactName(order.contact_name ?? '')
       setShippingMethod(order.shipping_method ?? '')
       setPaymentTerms(order.payment_terms ?? '')
@@ -280,6 +280,7 @@ export function OrderFormDialog({
       setFreight('0')
       setNotes('')
       setProductionNotes('')
+      setBoxesTotal('')
       setContactName('')
       setShippingMethod('')
       setPaymentTerms('')
@@ -308,6 +309,7 @@ export function OrderFormDialog({
         freight,
         notes,
         productionNotes,
+        boxesTotal,
         contactName,
         shippingMethod,
         paymentTerms,
@@ -332,6 +334,7 @@ export function OrderFormDialog({
     freight,
     notes,
     productionNotes,
+    boxesTotal,
     contactName,
     shippingMethod,
     paymentTerms,
@@ -474,7 +477,6 @@ export function OrderFormDialog({
 
   const removeItem = (key: string) => setItems((prev) => (prev.length > 1 ? prev.filter((item) => item.key !== key) : prev))
 
-  const totalBoxes = items.reduce((sum, item) => sum + toNumber(item.boxes), 0)
   const grossSubtotal = items.reduce((sum, item) => sum + toNumber(item.quantity) * toNumber(item.unit_price), 0)
   const subtotal = items.reduce((sum, item) => sum + itemTotal(item), 0)
   const itemDiscountsTotal = grossSubtotal - subtotal
@@ -504,6 +506,7 @@ export function OrderFormDialog({
       total,
       notes: notes.trim() || null,
       production_notes: productionNotes.trim() || null,
+      boxes: boxesTotal.trim() ? toNumber(boxesTotal) : null,
       contact_name: contactName.trim() || null,
       shipping_method: shippingMethod.trim() || null,
       payment_terms: paymentTerms.trim() || null,
@@ -884,9 +887,19 @@ export function OrderFormDialog({
                   onChange={(e) => setFreight(e.target.value)}
                 />
               </div>
+              <div className="flex flex-col gap-1">
+                <Label className="text-xs" htmlFor="boxes_total">Total de caixas</Label>
+                <Input
+                  id="boxes_total"
+                  className="h-8 w-28"
+                  inputMode="decimal"
+                  placeholder="informativo"
+                  value={boxesTotal}
+                  onChange={(e) => setBoxesTotal(e.target.value)}
+                />
+              </div>
             </div>
             <div className="text-right text-sm">
-              <p className="font-medium text-foreground">Total de caixas: {formatBoxes(totalBoxes)}</p>
               <p className="text-muted-foreground">Subtotal: {formatCurrency(grossSubtotal)}</p>
               {itemDiscountsTotal > 0 ? (
                 <p className="text-muted-foreground">Desconto nos itens: -{formatCurrency(itemDiscountsTotal)}</p>

@@ -67,7 +67,7 @@ export async function exportRawData(workspaceId: string) {
       total_pedido: order.total,
       observacao_cliente: order.notes ?? '',
       observacao_producao: order.production_notes ?? '',
-      total_caixas: (order.order_items ?? []).reduce((sum: number, i: any) => sum + Number(i.boxes ?? 0), 0),
+      total_caixas: order.boxes ?? '',
     }
     const items = [...(order.order_items ?? [])].sort((a: any, b: any) => a.position - b.position)
     if (items.length === 0) {
