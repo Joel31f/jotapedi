@@ -108,7 +108,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
       { type: 'image', src: '/ajuda/criar-produto-no-pedido-1.webp', alt: 'Opção "Usar só neste pedido" ao editar a descrição de um item' },
       {
         type: 'note',
-        text: 'Somente administradores têm a opção extra de cadastrar esse texto como um produto novo no catálogo (com o mesmo código ou com um código novo), para reaproveitar em pedidos futuros.',
+        text: 'Somente administradores têm a opção extra de cadastrar esse texto como um produto novo no catálogo (com o mesmo código ou com um código novo), para reaproveitar em pedidos futuros. Se o código ficar em branco, o sistema cria um código provisório que começa com "AUTO-" (aparece com o selo "provisório" embaixo do item). Para trocá-lo na hora, o administrador clica no lápis ao lado do código, digita o código definitivo e confirma com Enter. A troca vale para o produto no catálogo e para todos os pedidos que usam esse produto. Só códigos "AUTO-" podem ser editados dessa forma; os demais são alterados em Produtos.',
       },
     ],
     related: ['criar-pedido', 'cadastrar-produto'],

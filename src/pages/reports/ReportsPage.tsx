@@ -222,6 +222,7 @@ export function ReportsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>SKU</TableHead>
                   <TableHead>Produto</TableHead>
                   <TableHead className="text-right">Qtd.</TableHead>
                   <TableHead className="text-right">Total</TableHead>
@@ -230,13 +231,14 @@ export function ReportsPage() {
               <TableBody>
                 {productRanking.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={3} className="text-center text-sm text-muted-foreground">
+                    <TableCell colSpan={4} className="text-center text-sm text-muted-foreground">
                       Sem dados no período.
                     </TableCell>
                   </TableRow>
                 ) : (
                   productRanking.map((p) => (
                     <TableRow key={p.key}>
+                      <TableCell className="font-mono text-xs text-muted-foreground">{p.sku ?? '—'}</TableCell>
                       <TableCell className="text-foreground">{p.description}</TableCell>
                       <TableCell className="text-right">{p.quantity}</TableCell>
                       <TableCell className="text-right font-medium text-foreground">{formatCurrency(p.total)}</TableCell>

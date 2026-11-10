@@ -192,14 +192,21 @@ export function useProductRanking(range: DateRange, limit = 10) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('order_items')
-        .select('description, quantity, total, product_id')
+        .select('description, quantity, total, product_id, products(sku)')
         .in('order_id', wonOrderIds)
       if (error) throw error
 
-      const map = new Map<string, { key: string; description: string; quantity: number; total: number }>()
-      for (const item of data ?? []) {
+      const rows = (data ?? []) as unknown as {
+        description: string
+        quantity: number
+        total: number
+        product_id: string | null
+        products?: { sku: string } | null
+      }[]
+      const map = new Map<string, { key: string; sku: string | null; description: string; quantity: number; total: number }>()
+      for (const item of rows) {
         const key = item.product_id ?? item.description
-        const entry = map.get(key) ?? { key, description: item.description, quantity: 0, total: 0 }
+        const entry = map.get(key) ?? { key, sku: item.products?.sku ?? null, description: item.description, quantity: 0, total: 0 }
         entry.quantity += item.quantity
         entry.total += item.total
         map.set(key, entry)

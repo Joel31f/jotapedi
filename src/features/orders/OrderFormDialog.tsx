@@ -14,6 +14,7 @@ import { formatCurrency, formatDateTime } from '@/lib/format'
 import { supabase } from '@/lib/supabase'
 import { useWorkspace } from '@/providers/WorkspaceProvider'
 import { useCreateOrder, useUpdateOrder, type OrderWithItems, type OrderItemPayload } from '@/features/orders/api'
+import { ItemSkuEditor } from '@/features/orders/ItemSkuEditor'
 import { useBrandsQuery } from '@/features/brands/api'
 import { clearDraft, readDraft, writeDraft } from '@/lib/formDraft'
 import type { DiscountType } from '@/types/database'
@@ -696,11 +697,15 @@ export function OrderFormDialog({
                           })
                         }}
                       />
-                      {item.sku ? (
-                        <p className="truncate text-xs text-muted-foreground">
-                          Código: <span className="font-mono text-foreground">{item.sku}</span>
-                        </p>
-                      ) : null}
+                      <ItemSkuEditor
+                        sku={item.sku}
+                        productId={item.product_id}
+                        workspaceId={activeWorkspace?.id ?? ''}
+                        canEdit={isAdmin}
+                        onSaved={(productId, sku) =>
+                          setItems((prev) => prev.map((i) => (i.product_id === productId ? { ...i, sku } : i)))
+                        }
+                      />
                     </div>
                     <div className="flex min-w-[100px] flex-1 flex-col gap-1 md:min-w-0">
                       <Label className="text-xs text-muted-foreground md:hidden">Qtd.</Label>
