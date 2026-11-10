@@ -165,6 +165,7 @@ export interface Database {
           freight: number
           total: number
           notes: string | null
+          production_notes: string | null
           contact_name: string | null
           shipping_method: string | null
           payment_terms: string | null
@@ -210,6 +211,7 @@ export interface Database {
           total: number
           position: number
           notes: string | null
+          boxes: number
         }
         Insert: Partial<Database['public']['Tables']['order_items']['Row']> & {
           order_id: string

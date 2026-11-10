@@ -83,6 +83,9 @@ export function OrderPrintPage() {
     { label: 'Previsão de entrega', value: order.delivery_date ? formatDateOnly(order.delivery_date) : null },
     { label: 'Vendedor', value: seller },
   ].filter((detail) => detail.value)
+  const totalBoxes = order.items.reduce((sum: number, item: any) => sum + Number(item.boxes ?? 0), 0)
+  const showBoxes = totalBoxes > 0
+  const fmtBoxes = (value: number) => value.toLocaleString('pt-BR', { maximumFractionDigits: 2 })
   const itemsGrossSubtotal = order.items.reduce((sum: number, item: any) => sum + item.quantity * item.unit_price, 0)
   const itemDiscountsTotal = itemsGrossSubtotal - order.subtotal
 
@@ -166,7 +169,8 @@ export function OrderPrintPage() {
             <tr className="border-b border-neutral-400 text-left text-[10px] uppercase text-neutral-500">
               <th className="py-1 pr-3">Código</th>
               <th className="py-1 pr-3">Descrição</th>
-              <th className={isProduction ? 'py-1 text-right' : 'py-1 pr-3 text-right'}>Qtd.</th>
+              <th className={isProduction && !showBoxes ? 'py-1 text-right' : 'py-1 pr-3 text-right'}>Qtd.</th>
+              {showBoxes ? <th className={isProduction ? 'py-1 text-right' : 'py-1 pr-3 text-right'}>Caixas</th> : null}
               {isProduction ? null : (
                 <>
                   <th className="py-1 pr-3 text-right">Unit.</th>
@@ -192,9 +196,14 @@ export function OrderPrintPage() {
                       </span>
                     ) : null}
                   </td>
-                  <td className={isProduction ? 'py-[3px] text-right whitespace-nowrap' : 'py-[3px] pr-3 text-right whitespace-nowrap'}>
+                  <td className={isProduction && !showBoxes ? 'py-[3px] text-right whitespace-nowrap' : 'py-[3px] pr-3 text-right whitespace-nowrap'}>
                     {item.quantity}
                   </td>
+                  {showBoxes ? (
+                    <td className={isProduction ? 'py-[3px] text-right whitespace-nowrap' : 'py-[3px] pr-3 text-right whitespace-nowrap'}>
+                      {Number(item.boxes) > 0 ? fmtBoxes(Number(item.boxes)) : '—'}
+                    </td>
+                  ) : null}
                   {isProduction ? null : (
                     <>
                       <td className="py-[3px] pr-3 text-right whitespace-nowrap">{formatCurrency(item.unit_price)}</td>
@@ -210,6 +219,10 @@ export function OrderPrintPage() {
             })}
           </tbody>
         </table>
+
+        {showBoxes ? (
+          <p className="mb-2 text-right text-[11px] font-semibold">Total de caixas: {fmtBoxes(totalBoxes)}</p>
+        ) : null}
 
         {isProduction ? null : (
           <div className="mb-2 flex break-inside-avoid justify-end">
@@ -246,9 +259,16 @@ export function OrderPrintPage() {
           </div>
         )}
 
+        {isProduction && order.production_notes ? (
+          <div className="mb-2 break-inside-avoid rounded border border-neutral-400 p-1.5">
+            <p className="text-[10px] font-semibold uppercase text-neutral-700">Observação para produção</p>
+            <p className="whitespace-pre-wrap text-[11px] font-medium text-neutral-900">{order.production_notes}</p>
+          </div>
+        ) : null}
+
         {order.notes ? (
           <div className="mb-2 break-inside-avoid">
-            <p className="text-[10px] font-medium uppercase text-neutral-400">Observações</p>
+            <p className="text-[10px] font-medium uppercase text-neutral-400">Observação do cliente</p>
             <p className="whitespace-pre-wrap text-[11px] text-neutral-700">{order.notes}</p>
           </div>
         ) : null}

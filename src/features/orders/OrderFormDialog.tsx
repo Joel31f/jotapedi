@@ -30,6 +30,7 @@ interface LineItem {
   net_price: string
   notes: string
   sku: string
+  boxes: string
 }
 
 interface BaseProduct {
@@ -50,7 +51,7 @@ interface ProductPrompt {
   resolve: (option: ComboboxOption | null) => void
 }
 
-const ITEM_GRID = 'md:grid-cols-[minmax(0,1fr)_64px_92px_80px_72px_96px_92px_68px]'
+const ITEM_GRID = 'md:grid-cols-[minmax(0,1fr)_64px_64px_92px_80px_72px_96px_92px_68px]'
 
 function emptyItem(): LineItem {
   return {
@@ -64,6 +65,7 @@ function emptyItem(): LineItem {
     net_price: '0',
     notes: '',
     sku: '',
+    boxes: '',
   }
 }
 
@@ -81,8 +83,10 @@ function netUnitPrice(item: Pick<LineItem, 'unit_price' | 'discount_type' | 'dis
   return Math.max(0, price - discount)
 }
 
-function withNetPrice(item: Omit<LineItem, 'net_price' | 'notes' | 'sku'> & { notes?: string; sku?: string }): LineItem {
-  return { ...item, notes: item.notes ?? '', sku: item.sku ?? '', net_price: String(round2(netUnitPrice(item))) }
+function withNetPrice(
+  item: Omit<LineItem, 'net_price' | 'notes' | 'sku' | 'boxes'> & { notes?: string; sku?: string; boxes?: string },
+): LineItem {
+  return { ...item, notes: item.notes ?? '', sku: item.sku ?? '', boxes: item.boxes ?? '', net_price: String(round2(netUnitPrice(item))) }
 }
 
 interface OrderDraft {
@@ -97,11 +101,16 @@ interface OrderDraft {
   discountValue: string
   freight: string
   notes: string
+  productionNotes?: string
   contactName: string
   shippingMethod: string
   paymentTerms: string
   deliveryDate: string
   purchaseOrderNumber: string
+}
+
+function formatBoxes(value: number) {
+  return value.toLocaleString('pt-BR', { maximumFractionDigits: 2 })
 }
 
 function itemTotal(item: LineItem) {
@@ -139,6 +148,7 @@ export function OrderFormDialog({
   const [discountValue, setDiscountValue] = useState('0')
   const [freight, setFreight] = useState('0')
   const [notes, setNotes] = useState('')
+  const [productionNotes, setProductionNotes] = useState('')
   const [contactName, setContactName] = useState('')
   const [shippingMethod, setShippingMethod] = useState('')
   const [paymentTerms, setPaymentTerms] = useState('')
@@ -206,6 +216,7 @@ export function OrderFormDialog({
       setDiscountValue(draft.discountValue)
       setFreight(draft.freight)
       setNotes(draft.notes)
+      setProductionNotes(draft.productionNotes ?? '')
       setContactName(draft.contactName)
       setShippingMethod(draft.shippingMethod)
       setPaymentTerms(draft.paymentTerms)
@@ -233,6 +244,7 @@ export function OrderFormDialog({
       setDiscountValue(String(order.discount_value))
       setFreight(String(order.freight))
       setNotes(order.notes ?? '')
+      setProductionNotes(order.production_notes ?? '')
       setContactName(order.contact_name ?? '')
       setShippingMethod(order.shipping_method ?? '')
       setPaymentTerms(order.payment_terms ?? '')
@@ -250,6 +262,7 @@ export function OrderFormDialog({
                 discount_type: i.discount_type,
                 discount_value: String(i.discount_value),
                 notes: i.notes ?? '',
+                boxes: i.boxes ? String(i.boxes) : '',
                 sku: i.products?.sku ?? '',
               }),
             )
@@ -266,6 +279,7 @@ export function OrderFormDialog({
       setDiscountValue('0')
       setFreight('0')
       setNotes('')
+      setProductionNotes('')
       setContactName('')
       setShippingMethod('')
       setPaymentTerms('')
@@ -279,7 +293,7 @@ export function OrderFormDialog({
   useEffect(() => {
     if (!open) return
     const meaningful =
-      !!clientId || items.some((i) => i.description.trim()) || !!notes.trim() || !!contactName.trim() || !!shippingMethod.trim()
+      !!clientId || items.some((i) => i.description.trim()) || !!notes.trim() || !!productionNotes.trim() || !!contactName.trim() || !!shippingMethod.trim()
     if (meaningful) {
       writeDraft<OrderDraft>(draftKey, {
         clientId,
@@ -293,6 +307,7 @@ export function OrderFormDialog({
         discountValue,
         freight,
         notes,
+        productionNotes,
         contactName,
         shippingMethod,
         paymentTerms,
@@ -316,6 +331,7 @@ export function OrderFormDialog({
     discountValue,
     freight,
     notes,
+    productionNotes,
     contactName,
     shippingMethod,
     paymentTerms,
@@ -458,6 +474,7 @@ export function OrderFormDialog({
 
   const removeItem = (key: string) => setItems((prev) => (prev.length > 1 ? prev.filter((item) => item.key !== key) : prev))
 
+  const totalBoxes = items.reduce((sum, item) => sum + toNumber(item.boxes), 0)
   const grossSubtotal = items.reduce((sum, item) => sum + toNumber(item.quantity) * toNumber(item.unit_price), 0)
   const subtotal = items.reduce((sum, item) => sum + itemTotal(item), 0)
   const itemDiscountsTotal = grossSubtotal - subtotal
@@ -486,6 +503,7 @@ export function OrderFormDialog({
       freight: toNumber(freight),
       total,
       notes: notes.trim() || null,
+      production_notes: productionNotes.trim() || null,
       contact_name: contactName.trim() || null,
       shipping_method: shippingMethod.trim() || null,
       payment_terms: paymentTerms.trim() || null,
@@ -506,6 +524,7 @@ export function OrderFormDialog({
         total: itemTotal(item),
         position: index,
         notes: item.notes.trim() || null,
+        boxes: toNumber(item.boxes),
       }))
 
     try {
@@ -663,6 +682,7 @@ export function OrderFormDialog({
               <div className={`hidden gap-2 border-b border-border py-1.5 text-xs text-muted-foreground md:grid ${ITEM_GRID}`}>
                 <span>Produto / descrição</span>
                 <span>Qtd.</span>
+                <span>Caixas</span>
                 <span>Preço unit.</span>
                 <span>Desc.</span>
                 <span>Tipo</span>
@@ -714,6 +734,16 @@ export function OrderFormDialog({
                         inputMode="decimal"
                         value={item.quantity}
                         onChange={(e) => updateItem(item.key, { quantity: e.target.value })}
+                      />
+                    </div>
+                    <div className="flex min-w-[80px] flex-1 flex-col gap-1 md:min-w-0">
+                      <Label className="text-xs text-muted-foreground md:hidden">Caixas</Label>
+                      <Input
+                        className="h-9"
+                        inputMode="decimal"
+                        value={item.boxes}
+                        placeholder="0"
+                        onChange={(e) => updateItem(item.key, { boxes: e.target.value })}
                       />
                     </div>
                     <div className="flex min-w-[100px] flex-1 flex-col gap-1 md:min-w-0">
@@ -798,9 +828,27 @@ export function OrderFormDialog({
             </div>
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="notes">Observações</Label>
-            <Textarea id="notes" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="notes">Observação do cliente</Label>
+              <Textarea
+                id="notes"
+                rows={2}
+                value={notes}
+                placeholder="Sai na impressão do pedido (via do cliente e via de produção)"
+                onChange={(e) => setNotes(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="production_notes">Observação para produção</Label>
+              <Textarea
+                id="production_notes"
+                rows={2}
+                value={productionNotes}
+                placeholder="Sai só na impressão para produção"
+                onChange={(e) => setProductionNotes(e.target.value)}
+              />
+            </div>
           </div>
 
           <div className="flex flex-wrap items-end justify-between gap-3 rounded-lg border border-border p-3">
@@ -838,6 +886,7 @@ export function OrderFormDialog({
               </div>
             </div>
             <div className="text-right text-sm">
+              <p className="font-medium text-foreground">Total de caixas: {formatBoxes(totalBoxes)}</p>
               <p className="text-muted-foreground">Subtotal: {formatCurrency(grossSubtotal)}</p>
               {itemDiscountsTotal > 0 ? (
                 <p className="text-muted-foreground">Desconto nos itens: -{formatCurrency(itemDiscountsTotal)}</p>

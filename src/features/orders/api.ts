@@ -137,6 +137,7 @@ export interface OrderPayload {
   freight: number
   total: number
   notes: string | null
+  production_notes: string | null
   contact_name: string | null
   shipping_method: string | null
   payment_terms: string | null
@@ -157,6 +158,7 @@ export interface OrderItemPayload {
   total: number
   position: number
   notes: string | null
+  boxes: number
 }
 
 async function replaceOrderItems(orderId: string, items: OrderItemPayload[]) {

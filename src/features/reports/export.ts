@@ -32,7 +32,7 @@ export async function exportRawData(workspaceId: string) {
         supabase
           .from('orders')
           .select(
-            '*, clients(name, company, document), pipeline_stages(name), brands(name), order_items(position, description, quantity, unit_price, discount_type, discount_value, total, notes, products(sku))',
+            '*, clients(name, company, document), pipeline_stages(name), brands(name), order_items(position, description, quantity, boxes, unit_price, discount_type, discount_value, total, notes, products(sku))',
           )
           .eq('workspace_id', workspaceId)
           .order('id')
@@ -65,11 +65,13 @@ export async function exportRawData(workspaceId: string) {
       desconto_global_valor: order.discount_value,
       subtotal: order.subtotal,
       total_pedido: order.total,
-      observacoes_pedido: order.notes ?? '',
+      observacao_cliente: order.notes ?? '',
+      observacao_producao: order.production_notes ?? '',
+      total_caixas: (order.order_items ?? []).reduce((sum: number, i: any) => sum + Number(i.boxes ?? 0), 0),
     }
     const items = [...(order.order_items ?? [])].sort((a: any, b: any) => a.position - b.position)
     if (items.length === 0) {
-      return [{ ...base, item: '', codigo: '', produto: '', quantidade: '', preco_unitario: '', desconto_item_tipo: '', desconto_item_valor: '', total_item: '', observacao_item: '' }]
+      return [{ ...base, item: '', codigo: '', produto: '', quantidade: '', caixas: '', preco_unitario: '', desconto_item_tipo: '', desconto_item_valor: '', total_item: '', observacao_item: '' }]
     }
     return items.map((item: any, index: number) => ({
       ...base,
@@ -77,6 +79,7 @@ export async function exportRawData(workspaceId: string) {
       codigo: item.products?.sku ?? '',
       produto: item.description,
       quantidade: item.quantity,
+      caixas: item.boxes ?? 0,
       preco_unitario: item.unit_price,
       desconto_item_tipo: item.discount_type,
       desconto_item_valor: item.discount_value,
