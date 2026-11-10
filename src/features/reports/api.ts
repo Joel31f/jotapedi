@@ -48,12 +48,13 @@ export function resolveRange(preset: PeriodPreset, customFrom: string, customTo:
   }
 }
 
-interface OrderRow {
+export interface OrderRow {
   id: string
   total: number
   created_at: string
   client_id: string
   stage_id: string
+  assigned_to: string | null
   pipeline_stages: { id: string; name: string; color: string; is_won: boolean } | null
   clients: { id: string; name: string } | null
 }
@@ -67,7 +68,7 @@ function useOrdersInRange(range: DateRange) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('orders')
-        .select('id, total, created_at, client_id, stage_id, pipeline_stages(id, name, color, is_won), clients(id, name)')
+        .select('id, total, created_at, client_id, stage_id, assigned_to, pipeline_stages(id, name, color, is_won), clients(id, name)')
         .eq('workspace_id', activeWorkspace!.id)
         .gte('created_at', range.start.toISOString())
         .lte('created_at', range.end.toISOString())
@@ -217,4 +218,121 @@ export function useProductRanking(range: DateRange, limit = 10) {
         .slice(0, limit)
     },
   })
+}
+
+// ---------------------------------------------------------------------------
+// Relatório por vendedor
+// ---------------------------------------------------------------------------
+
+export const NO_SELLER_ID = 'none'
+
+export interface SellerStats {
+  id: string
+  name: string
+  orders: number
+  won: number
+  revenue: number
+  avgTicket: number
+  conversionRate: number
+  activitiesTotal: number
+  activitiesCompleted: number
+  activitiesRate: number
+}
+
+export function buildFunnel(stages: { id: string; name: string; color: string }[], orders: OrderRow[]) {
+  return stages.map((stage) => {
+    const stageOrders = orders.filter((o) => o.stage_id === stage.id)
+    return { stage, count: stageOrders.length, value: stageOrders.reduce((sum, o) => sum + o.total, 0) }
+  })
+}
+
+export function buildClientRanking(orders: OrderRow[], limit = 5) {
+  const map = new Map<string, { id: string; name: string; total: number; count: number }>()
+  for (const order of orders) {
+    if (!order.pipeline_stages?.is_won || !order.clients) continue
+    const entry = map.get(order.clients.id) ?? { id: order.clients.id, name: order.clients.name, total: 0, count: 0 }
+    entry.total += order.total
+    entry.count += 1
+    map.set(order.clients.id, entry)
+  }
+  return Array.from(map.values())
+    .sort((a, b) => b.total - a.total)
+    .slice(0, limit)
+}
+
+export function sellerKey(assignedTo: string | null) {
+  return assignedTo ?? NO_SELLER_ID
+}
+
+export function useSellerReport(range: DateRange) {
+  const { activeWorkspace } = useWorkspace()
+  const { data: orders = [], isLoading: ordersLoading } = useOrdersInRange(range)
+
+  const membersQuery = useQuery({
+    queryKey: ['report-members', activeWorkspace?.id],
+    enabled: !!activeWorkspace,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, name, email')
+        .eq('workspace_id', activeWorkspace!.id)
+        .not('joined_at', 'is', null)
+      if (error) throw error
+      return data ?? []
+    },
+  })
+
+  const activitiesQuery = useQuery({
+    queryKey: ['report-activities-by-user', activeWorkspace?.id, range.start.toISOString(), range.end.toISOString()],
+    enabled: !!activeWorkspace,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('activities')
+        .select('status, assigned_to')
+        .eq('workspace_id', activeWorkspace!.id)
+        .gte('due_at', range.start.toISOString())
+        .lte('due_at', range.end.toISOString())
+      if (error) throw error
+      return data ?? []
+    },
+  })
+
+  const members = membersQuery.data ?? []
+  const activities = activitiesQuery.data ?? []
+
+  const names = new Map<string, string>(members.map((m) => [m.id, m.name || m.email]))
+  const ids = new Set<string>(members.map((m) => m.id))
+  // Pedidos/atividades sem responsável (ou de alguém que saiu) entram numa linha própria.
+  const hasUnassigned =
+    orders.some((o) => !o.assigned_to || !ids.has(o.assigned_to)) || activities.some((a) => !a.assigned_to || !ids.has(a.assigned_to))
+  const keys = [...members.map((m) => m.id), ...(hasUnassigned ? [NO_SELLER_ID] : [])]
+  const resolveKey = (assignedTo: string | null) => (assignedTo && ids.has(assignedTo) ? assignedTo : NO_SELLER_ID)
+
+  const sellers: SellerStats[] = keys.map((id) => {
+    const sellerOrders = orders.filter((o) => resolveKey(o.assigned_to) === id)
+    const won = sellerOrders.filter((o) => o.pipeline_stages?.is_won)
+    const revenue = won.reduce((sum, o) => sum + o.total, 0)
+    const sellerActivities = activities.filter((a) => resolveKey(a.assigned_to) === id)
+    const completed = sellerActivities.filter((a) => a.status === 'completed').length
+    return {
+      id,
+      name: id === NO_SELLER_ID ? 'Sem responsável' : (names.get(id) ?? 'Sem nome'),
+      orders: sellerOrders.length,
+      won: won.length,
+      revenue,
+      avgTicket: won.length > 0 ? revenue / won.length : 0,
+      conversionRate: sellerOrders.length > 0 ? (won.length / sellerOrders.length) * 100 : 0,
+      activitiesTotal: sellerActivities.length,
+      activitiesCompleted: completed,
+      activitiesRate: sellerActivities.length > 0 ? (completed / sellerActivities.length) * 100 : 0,
+    }
+  })
+
+  const ordersOf = (id: string) => orders.filter((o) => resolveKey(o.assigned_to) === id)
+
+  return {
+    sellers,
+    ordersOf,
+    isLoading: ordersLoading || membersQuery.isLoading || activitiesQuery.isLoading,
+  }
 }

@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { formatCurrency } from '@/lib/format'
 import { useWorkspace } from '@/providers/WorkspaceProvider'
 import {
@@ -19,6 +20,7 @@ import {
   type PeriodPreset,
 } from '@/features/reports/api'
 import { exportRawData } from '@/features/reports/export'
+import { SellersReport } from '@/pages/reports/SellersReport'
 
 const PERIOD_OPTIONS: { value: PeriodPreset; label: string }[] = [
   { value: 'today', label: 'Hoje' },
@@ -93,6 +95,15 @@ export function ReportsPage() {
         </div>
       </div>
 
+      <Tabs defaultValue="geral" className="gap-6">
+        {isAdmin ? (
+          <TabsList>
+            <TabsTrigger value="geral">Geral</TabsTrigger>
+            <TabsTrigger value="vendedores">Vendedores</TabsTrigger>
+          </TabsList>
+        ) : null}
+
+        <TabsContent value="geral" className="flex flex-col gap-6">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardContent className="py-4">
@@ -250,6 +261,14 @@ export function ReportsPage() {
           </CardContent>
         </Card>
       </div>
+        </TabsContent>
+
+        {isAdmin ? (
+          <TabsContent value="vendedores">
+            <SellersReport range={range} />
+          </TabsContent>
+        ) : null}
+      </Tabs>
     </div>
   )
 }
