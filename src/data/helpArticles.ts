@@ -126,7 +126,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
         items: [
           'Abra o pedido (clique nele na lista ou no quadro Kanban).',
           'No rodapé da tela, clique em "Imprimir" para a via completa, com preços — a que você entrega para o cliente.',
-          'Clique em "Imprimir p/ produção" para a via sem nenhum preço, valores nem totais — só código, descrição, quantidade e as informações do pedido (transporte, previsão de entrega, etc). Essa via tem o selo "Via de produção" no topo e mostra, em destaque, a Observação para produção (a Observação do cliente também aparece). A via do cliente nunca mostra a Observação para produção.',
+          'Clique em "Imprimir p/ produção" para a via sem nenhum preço, valores nem totais — só código, descrição, quantidade e as informações do pedido (transporte, previsão de entrega, etc). Essa via tem o selo "Via de produção" no topo e mostra, em destaque, a Observação para produção. A Observação do cliente não sai nessa via, e a Observação para produção nunca aparece na via do cliente.',
           'As duas abrem em uma aba nova, já prontas para imprimir ou salvar como PDF.',
         ],
       },
@@ -303,7 +303,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
       {
         type: 'steps',
         items: [
-          'Observação do cliente: escreva o que o cliente deve ver no pedido, como combinados de entrega ou condições. Ela sai na impressão normal (via do cliente) e também na via de produção.',
+          'Observação do cliente: escreva o que o cliente deve ver no pedido, como combinados de entrega ou condições. Ela sai só na impressão normal (via do cliente) e nunca aparece na via de produção.',
           'Observação para produção: escreva instruções só para a fábrica, como folga de corte, separação por cor ou prioridade. Ela sai apenas na impressão "Imprimir p/ produção", em um quadro de destaque, e nunca aparece na via do cliente.',
           'Clique em Salvar. As duas observações ficam guardadas no pedido e voltam quando você abrir o pedido de novo.',
         ],

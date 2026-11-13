@@ -869,7 +869,7 @@ export function OrderFormDialog({
                 id="notes"
                 rows={2}
                 value={notes}
-                placeholder="Sai na impressão do pedido (via do cliente e via de produção)"
+                placeholder="Sai só na impressão do pedido (via do cliente)"
                 onChange={(e) => setNotes(e.target.value)}
               />
             </div>

@@ -266,7 +266,7 @@ export function OrderPrintPage() {
           </div>
         ) : null}
 
-        {order.notes ? (
+        {!isProduction && order.notes ? (
           <div className="mb-2 break-inside-avoid">
             <p className="text-[10px] font-medium uppercase text-neutral-400">Observação do cliente</p>
             <p className="whitespace-pre-wrap text-[11px] text-neutral-700">{order.notes}</p>
